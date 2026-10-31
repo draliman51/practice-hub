@@ -152,7 +152,7 @@ const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const student=id=>DATA.settings.students.find(s=>s.id===id);
 const first=s=>String(s||'').split(' ')[0];
 const LT=(e,k)=>(e&&e.rtl?'أبجد':'ABCD')[k];
-function whyHtml(w,rtl){ if(rtl) return esc(w); const m=/[\u0600-\u06FF]/.exec(w||''); if(!m) return esc(w); const j=w.lastIndexOf(' ',m.index); const en=w.slice(0,j).trim(), ar=w.slice(j).trim(); return esc(en)+'<span dir="rtl" style="display:block;margin-top:.15rem">'+esc(ar)+'</span>'; }
+function whyHtml(w,rtl){ if(rtl) return esc(w); const m=/[\u0600-\u06FF]/.exec(w||''); if(!m) return esc(w); let j=-1; for(const c of '🔢💡✏⚠🔍🎯✨🔑🔁➕➖📶🗣🧠🐊'){ const k=w.lastIndexOf(c,m.index); if(k>j) j=k; } if(j<0) j=w.lastIndexOf(' ',m.index); const en=w.slice(0,j).trim(), ar=w.slice(j).trim(); return esc(en)+'<span dir="rtl" style="display:block;margin-top:.15rem">'+esc(ar)+'</span>'; }
 const hasPdf=e=>(DATA.pdfs||[]).includes(e.id);
 const pdfLinks=(e,cls='sm ghost')=>hasPdf(e)?`<button class="${cls}" onclick="savePdf('${e.id}','key',this)">📄 Answer key PDF</button> <button class="${cls}" onclick="savePdf('${e.id}','student',this)">📝 Student PDF</button>`:'';
 async function savePdf(id,kind,btn){
