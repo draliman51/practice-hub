@@ -26,6 +26,8 @@ async function delMany(urls) {
 async function allScores() { const bs = await listAll('scores/'); return (await Promise.all(bs.map(b => fetchJson(b).catch(() => null)))).filter(Boolean); }
 async function saveScore(r) { await putJson(`scores/${r.id}.json`, r); }
 async function clearScores() { const bs = await listAll('scores/'); await delMany(bs.map(b => b.url)); }
+async function getKv(key) { const bs = await listAll(`kv/${key}.json`); if (!bs.length) return null; return await fetchJson(bs[0]).catch(() => null); }
+async function setKv(key, v) { await putJson(`kv/${key}.json`, v); }
 function readBody(req) {
   return new Promise((resolve, reject) => {
     if (req.body !== undefined) return resolve(typeof req.body === 'string' ? JSON.parse(req.body) : req.body);
@@ -33,4 +35,4 @@ function readBody(req) {
   });
 }
 function noCache(res) { res.setHeader('Cache-Control', 'no-store, max-age=0'); res.setHeader('Content-Type', 'application/json; charset=utf-8'); }
-module.exports = { hasBlob, allScores, saveScore, clearScores, readBody, noCache };
+module.exports = { hasBlob, allScores, saveScore, clearScores, getKv, setKv, readBody, noCache };
