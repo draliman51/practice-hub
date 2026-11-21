@@ -1,0 +1,8 @@
+{
+  "name": "aleen-mansour-arcade",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Family game arcade for Aleen & Mansour — static page + Vercel serverless API backed by Vercel Blob.",
+  "dependencies": { "@vercel/blob": "^0.27.0" },
+  "engines": { "node": ">=18" }
+}
