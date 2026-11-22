@@ -1,0 +1,35 @@
+@tailwind base; @tailwind components; @tailwind utilities;
+:root{--bg:#1b1140;--bg2:#2a1b5e;--card:rgba(255,255,255,.08);--line:rgba(255,255,255,.14)}
+html,body{height:100%}
+body{@apply font-body text-white antialiased; background:radial-gradient(1200px 600px at 10% -10%,#4c1d95 0%,transparent 60%),radial-gradient(900px 500px at 110% 10%,#be185d 0%,transparent 55%),linear-gradient(180deg,#1b1140,#120b2e 60%,#0b0620); background-attachment:fixed}
+h1,h2,h3,.display{@apply font-display}
+.btn{@apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-display font-bold text-ink shadow-pop transition active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:pointer-events-none select-none}
+.btn-sun{@apply btn bg-sun}.btn-mint{@apply btn bg-mint}.btn-candy{@apply btn bg-candy text-white}.btn-grape{@apply btn bg-grape text-white}.btn-ghost{@apply btn bg-white/10 text-white shadow-none border border-white/20}
+.btn-sm{@apply px-3 py-2 text-sm rounded-xl}
+.card{@apply rounded-3xl border border-white/10 bg-white/[.07] p-4 backdrop-blur-sm shadow-card}
+.input{@apply w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-white placeholder-white/40 outline-none focus:border-sun}
+.pill{@apply inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-sm font-bold}
+.pill-sun{@apply pill bg-sun text-ink}
+.chip{@apply rounded-full border-2 border-white/15 bg-white/10 px-3 py-2 text-sm font-bold whitespace-nowrap}
+.chip.on{@apply bg-sun text-ink border-sun}
+.muted{@apply text-white/60}
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.7rem}
+.sw{@apply h-9 w-9 rounded-full border-[3px] border-white/25 cursor-pointer shadow-pop}.sw.on{@apply border-white scale-110 ring-4 ring-sun}
+#alx{position:relative;height:min(68vh,620px);min-height:360px;border-radius:22px;overflow:hidden;touch-action:none;background:#7EC8FF;user-select:none;-webkit-user-select:none}
+#alx canvas{width:100%;height:100%;display:block}
+#alx-hud{position:absolute;top:.5rem;left:.5rem;display:flex;gap:.4rem;flex-wrap:wrap;pointer-events:none}
+#alx-hud .pill{background:rgba(20,26,59,.78)}#alx-hud .pill.y{background:#FFD23F;color:#141A3B}
+#alx-msg{position:absolute;top:3.2rem;left:50%;transform:translateX(-50%);background:rgba(20,26,59,.85);color:#fff;padding:.4rem 1rem;border-radius:999px;font-weight:800;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+#alx-msg.show{opacity:1}
+#alx-joy{position:absolute;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.6);pointer-events:none}
+#alx-joy .knob{position:absolute;left:30px;top:30px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.85)}
+#alx-jump{position:absolute;right:.8rem;bottom:.8rem;width:86px;height:86px;border-radius:50%;background:#FF5DA2;color:#fff;font-weight:900;font-size:1rem;box-shadow:0 5px 0 rgba(0,0,0,.35);touch-action:none}
+#alx-side{position:absolute;right:.8rem;bottom:7rem;display:flex;flex-direction:column;gap:.5rem}
+#alx-side button{width:48px;height:48px;border-radius:50%;font-size:1.4rem;background:rgba(255,255,255,.92);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+#alx-wheel{position:absolute;right:4.3rem;bottom:7rem;display:grid;grid-template-columns:1fr 1fr;gap:.35rem;background:rgba(20,26,59,.88);padding:.5rem;border-radius:16px;max-width:240px}
+#alx-wheel button{padding:.45rem .5rem;font-size:1rem;background:rgba(255,255,255,.12);color:#fff;border-radius:12px;display:flex;flex-direction:column;align-items:center}#alx-wheel button small{font-size:.65rem;opacity:.8}
+#alx-top{position:absolute;right:.6rem;top:.5rem;display:flex;gap:.4rem}
+#alx-load{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,26,59,.6);color:#fff;font-weight:800;text-align:center;padding:1rem}
+.toast{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);background:#fff;color:#141A3B;padding:.7rem 1.1rem;border-radius:16px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:60;max-width:92vw;text-align:center}
+@keyframes pop{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .25s ease-out}
