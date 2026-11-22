@@ -2,16 +2,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n';
 import { toast } from '@/components/Toast';
 export default function Login() {
   const { t, lang, setLang } = useT(); const r = useRouter(); const sp = useSearchParams(); const [id, setId] = useState(''); const [pw, setPw] = useState(''); const [busy, setBusy] = useState(false);
   const go = async (e: React.FormEvent) => { e.preventDefault(); setBusy(true);
-    const email = id.includes('@') ? id.trim() : `${id.trim().toLowerCase()}@kids.alilox.app`;
-    const { error } = await supabase().auth.signInWithPassword({ email, password: pw }); setBusy(false);
-    if (error) return toast('😕 ' + (lang === 'ar' ? 'اسم المستخدم أو كلمة المرور غير صحيحة' : error.message));
-    r.replace(sp.get('next') || '/play'); r.refresh(); };
+    const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, password: pw }) }); const j = await res.json().catch(() => ({})); setBusy(false);
+    if (!res.ok) return toast('😕 ' + (j.error === 'Invalid login credentials' ? (lang === 'ar' ? 'اسم المستخدم أو كلمة المرور غير صحيحة' : 'Wrong username or password') : j.error === 'Email not confirmed' ? (lang === 'ar' ? 'البريد غير مؤكد' : 'Email not confirmed') : j.error || 'Error'));
+    window.location.assign(sp.get('next') || '/play'); };
   return <main className="mx-auto max-w-sm px-5 py-10">
     <div className="text-center"><div className="text-6xl">🧱</div><h1 className="text-3xl">{t('login')}</h1></div>
     <form onSubmit={go} className="card mt-6 space-y-3">

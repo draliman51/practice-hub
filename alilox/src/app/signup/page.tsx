@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n';
 import { toast } from '@/components/Toast';
 export default function Signup() {
@@ -12,12 +11,10 @@ export default function Signup() {
   const go = async (e: React.FormEvent) => { e.preventDefault(); setBusy(true);
     const username = f.username.trim().toLowerCase();
     if (!/^[a-z0-9_]{3,16}$/.test(username)) { setBusy(false); return toast(lang === 'ar' ? 'اسم المستخدم: 3–16 حرفًا إنجليزيًا أو رقمًا أو _' : 'Username: 3–16 letters, numbers or _'); }
-    const email = role === 'parent' ? f.email.trim() : `${username}@kids.alilox.app`;
-    const { error } = await supabase().auth.signUp({ email, password: f.password, options: { data: { role, username, display_name: f.display_name.trim() || username, parent_email: role === 'child' ? f.parent_email.trim() : null, under13: role === 'child' ? f.under13 : false, lang } } });
-    setBusy(false); if (error) return toast('😕 ' + error.message);
-    const { data: { session } } = await supabase().auth.getSession();
-    if (!session) { toast(lang === 'ar' ? 'تحقق من بريدك لتأكيد الحساب ✉️' : 'Check your email to confirm ✉️'); r.replace('/login'); return; }
-    r.replace(role === 'child' ? '/pending' : '/parent'); r.refresh(); };
+    const res = await fetch('/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, username, role, lang }) }); const j = await res.json().catch(() => ({})); setBusy(false);
+    if (!res.ok) return toast('😕 ' + (j.error || 'Error'));
+    if (j.needsConfirm) { toast(lang === 'ar' ? 'تحقق من بريدك لتأكيد الحساب ✉️' : 'Check your email to confirm ✉️'); r.replace('/login'); return; }
+    window.location.assign(role === 'child' ? '/pending' : '/parent'); };
   return <main className="mx-auto max-w-sm px-5 py-8">
     <div className="text-center"><div className="text-6xl">🧱</div><h1 className="text-3xl">{t('signup')}</h1></div>
     <div className="mt-5 grid grid-cols-2 gap-2"><button className={`chip ${role === 'child' ? 'on' : ''}`} onClick={() => setRole('child')}>{t('iAmChild')}</button><button className={`chip ${role === 'parent' ? 'on' : ''}`} onClick={() => setRole('parent')}>{t('iAmParent')}</button></div>

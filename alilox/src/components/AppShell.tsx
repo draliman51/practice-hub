@@ -28,7 +28,7 @@ export default function AppShell({ profile, children, wide }: { profile: Profile
           <span className="pill-sun">🪙 {profile.coins}</span><span className="pill">⭐ {t('level')} {profile.level}</span>
           <button className="btn-ghost btn-sm" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'EN' : 'ع'}</button>
           {(profile.role === 'parent' || profile.role === 'admin') && <Link className="btn-ghost btn-sm" href={profile.role === 'admin' ? '/admin' : '/parent'}>{profile.role === 'admin' ? '🛡️' : '👨‍👩‍👧'}</Link>}
-          <button className="btn-ghost btn-sm" onClick={async () => { await supabase().auth.signOut(); router.replace('/'); }}>{t('logout')}</button>
+          <button className="btn-ghost btn-sm" onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.assign('/'); }}>{t('logout')}</button>
         </div>
       </header>
       <main className={`mx-auto px-4 py-4 ${wide ? 'max-w-6xl' : 'max-w-3xl'}`}>
