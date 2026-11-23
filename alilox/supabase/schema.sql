@@ -395,6 +395,16 @@ end $$;
 drop trigger if exists room_guard_trg on public.room_members;
 create trigger room_guard_trg before insert on public.room_members for each row execute function public.room_guard();
 
+
+-- ---------- table privileges (RLS still decides row access) ----------
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to anon, authenticated, service_role;
+grant all on all sequences in schema public to anon, authenticated, service_role;
+grant execute on all functions in schema public to anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+
 -- ---------- storage bucket for photos (private; served through signed URLs) ----------
 insert into storage.buckets (id, name, public) values ('photos','photos', false) on conflict (id) do nothing;
 drop policy if exists photos_own on storage.objects;
