@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from '@/components/Toast';
 import { useT, nameOf } from '@/lib/i18n';
 import { play } from '@/game/sfx';
+import { HOUSE_TEMPLATES } from '@/game/templates';
 import type { Profile, Item } from '@/lib/types';
 const WALLS = ['#FDE68A', '#D9F99D', '#E9D5FF', '#FDBA74', '#A5F3FC', '#BFDBFE', '#FBCFE8']; const FLOORS = ['#D6D3D1', '#93C5FD', '#FCA5A5', '#FDE68A', '#C4B5FD', '#B45309', '#86EFAC'];
 const WALL_ITEM: Record<number, string> = { 5: 'wall_blue', 6: 'wall_pink' }; const FLOOR_ITEM: Record<number, string> = { 5: 'floor_wood', 6: 'floor_grass' };
@@ -18,6 +19,7 @@ export default function HouseClient({ profile, items, visit }: { profile: Profil
       {Array.from({ length: 48 }, (_, k) => { const x = k % 8, y = Math.floor(k / 8); const it = h.items.find((i) => i.x === x && i.y === y); return <button key={k} onClick={() => tap(x, y)} className="aspect-square rounded-md bg-black/5 text-2xl leading-none hover:bg-black/10">{it ? ic(it.id) : ''}</button>; })}
     </div></div></div>
     {!ro && <>
+      <div className="card mt-3 p-3"><b className="text-sm">💡 {lang === 'ar' ? 'قوالب جاهزة (قابلة للتعديل)' : 'Ready-made templates (editable)'}</b><div className="mt-2 flex flex-wrap gap-2">{HOUSE_TEMPLATES.map((tp) => <button key={tp.id} className="chip" onClick={() => { const missing = Array.from(new Set(tp.items.map((i) => i.id).filter((id) => !profile.owned.includes(id)))); const items = tp.items.filter((i) => profile.owned.includes(i.id)); setH({ wall: WALL_ITEM[tp.wall] && !profile.owned.includes(WALL_ITEM[tp.wall]) ? 0 : tp.wall, floor: FLOOR_ITEM[tp.floor] && !profile.owned.includes(FLOOR_ITEM[tp.floor]) ? 0 : tp.floor, items }); play('ok'); toast(missing.length ? (lang === 'ar' ? `اشترِ من المتجر لإكمال القالب: ${missing.map(ic).join(' ')}` : `Buy in the Shop to complete it: ${missing.map(ic).join(' ')}`) : (lang === 'ar' ? tp.ar : tp.en) + ' ✅'); }}>{tp.ic} {lang === 'ar' ? tp.ar : tp.en}</button>)}</div><p className="muted mt-2 text-xs">{lang === 'ar' ? 'القالب يضع الأثاث الذي تملكه فقط — ثم عدّله كما تحب واضغط حفظ.' : 'A template places only furniture you own — then edit it as you like and press Save.'}</p></div>
       <h2 className="mt-4 mb-2 text-lg">🛋️ {lang === 'ar' ? 'الأثاث' : 'Furniture'}</h2><div className="flex flex-wrap gap-2">{furn.map((i) => <button key={i.id} className={`chip ${tool === i.id ? 'on' : ''}`} onClick={() => setTool(i.id)}>{i.icon} {nameOf(lang, i)}</button>)}<button className={`chip ${tool === 'erase' ? 'on' : ''}`} onClick={() => setTool('erase')}>🧹 {lang === 'ar' ? 'مسح' : 'Erase'}</button></div>
       {furn.length === 0 && <p className="muted mt-2 text-sm">{lang === 'ar' ? 'اشترِ أثاثًا من المتجر 🛍️' : 'Buy furniture in the Shop 🛍️'}</p>}
       <h2 className="mt-4 mb-2 text-lg">🎨 {lang === 'ar' ? 'الجدران والأرضية' : 'Walls & floor'}</h2>

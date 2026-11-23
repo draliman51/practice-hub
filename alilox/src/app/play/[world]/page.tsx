@@ -8,7 +8,8 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 export default async function WorldPage({ params, searchParams }: { params: { world: string }; searchParams: { mode?: string; room?: string; w?: string } }) {
   const profile = await requireActive(); const sb = supabaseServer();
-  const W = WORLDS.find((w) => w.id === params.world); if (!W || W.mini) redirect('/play');
+  const W = WORLDS.find((w) => w.id === params.world) as any; if (!W || W.mini) redirect('/play');
+  if (W.campaign && W.campaign > 1 && !profile.worlds_done.includes('c' + (W.campaign - 1)) && profile.role === 'child') redirect('/play');
   const mode = (searchParams.room ? 'online' : searchParams.mode === 'cpu' && W.modes.includes('cpu') ? 'cpu' : 'solo') as 'solo' | 'cpu' | 'online';
   const [photoUrl, season, ev] = await Promise.all([signedPhoto(sb, profile.photo_path), currentSeason(sb), currentEvent(sb)]);
   let others: any[] = [];

@@ -7,6 +7,7 @@ import GameCanvas from '@/components/GameCanvas';
 import { toast } from '@/components/Toast';
 import { useT } from '@/lib/i18n';
 import { play } from '@/game/sfx';
+import { WORLD_TEMPLATES } from '@/game/templates';
 import type { Profile } from '@/lib/types';
 const PAL = [0x3B82F6, 0xA78BFA, 0x2EE6D6, 0xFF5DA2, 0xFF8A3D, 0x4ADE80, 0xFFD23F, 0xF1F5F9];
 type Block = { x: number; y: number; z: number; c: number; kind?: string };
@@ -26,6 +27,8 @@ export default function EditorClient({ profile, photoUrl, world, mine }: { profi
   const hex = (c: number) => '#' + c.toString(16).padStart(6, '0');
   return <div><div className="flex flex-wrap items-center gap-2"><h1 className="grow text-3xl">🧱 {t('editor')}</h1><input className="input w-44" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} /><button className="btn-ghost btn-sm" onClick={() => setTest(true)}>▶ {lang === 'ar' ? 'جرّب' : 'Test'}</button><button className="btn-mint btn-sm" disabled={busy} onClick={() => save()}>{t('save')}</button><button className="btn-sun btn-sm" disabled={busy} onClick={() => save(true)}>🚀 {lang === 'ar' ? 'نشر' : 'Publish'}</button></div>
     <p className="muted text-sm mt-1">{lang === 'ar' ? 'انقر لوضع مكعب في الطبقة الحالية. ابنِ مسارًا من البداية 🟢 إلى النهاية 🟡 وأضف عملات. بعد النشر يراجعه فريق Alilox ثم يظهر للجميع.' : 'Tap to place a block on the current layer. Build a path from Start 🟢 to Finish 🟡 and add coins. After publishing, the Alilox team reviews it before everyone can play it.'}</p>
+    <div className="card mt-3 p-3"><b className="text-sm">💡 {lang === 'ar' ? 'ابدأ من قالب (قابل للتعديل)' : 'Start from a template (editable)'}</b><div className="mt-2 flex flex-wrap gap-2">{WORLD_TEMPLATES.map((tp) => <button key={tp.id} className="chip" title={lang === 'ar' ? tp.d_ar : tp.d_en} onClick={() => { if (data.blocks.length > 1 && !confirm(lang === 'ar' ? 'سيستبدل القالب ما بنيته. متابعة؟' : 'This replaces your current build. Continue?')) return; setData(tp.build() as any); setLayer(0); play('ok'); toast((lang === 'ar' ? tp.ar : tp.en) + ' ✅'); }}>{tp.ic} {lang === 'ar' ? tp.ar : tp.en}</button>)}</div>
+      <p className="muted mt-2 text-xs">{lang === 'ar' ? 'أفكار: اجعل الفجوات صغيرة في البداية، ضع نقطة تفتيش 🚩 بعد كل جزء صعب، وأضف عملات 🪙 لتوجيه اللاعب. جرّب عالمك بزر "جرّب" قبل النشر.' : 'Tips: keep gaps small at first, place a checkpoint 🚩 after each hard part, and use coins 🪙 to guide players. Test with ▶ before publishing.'}</p></div>
     <div className="mt-3 flex flex-wrap items-center gap-2">
       {(['block', 'coin', 'check', 'finish', 'start', 'erase'] as const).map((k) => <button key={k} className={`chip ${tool === k ? 'on' : ''}`} onClick={() => setTool(k)}>{{ block: '🧱', coin: '🪙', check: '🚩', finish: '🌀', start: '🟢', erase: '🧹' }[k]} {{ block: lang === 'ar' ? 'مكعب' : 'Block', coin: lang === 'ar' ? 'عملة' : 'Coin', check: lang === 'ar' ? 'نقطة تفتيش' : 'Checkpoint', finish: lang === 'ar' ? 'نهاية' : 'Finish', start: lang === 'ar' ? 'بداية' : 'Start', erase: lang === 'ar' ? 'مسح' : 'Erase' }[k]}</button>)}
       <span className="muted text-xs ms-2">{lang === 'ar' ? 'اللون' : 'Colour'}</span>{PAL.map((c) => <span key={c} className={`sw !h-7 !w-7 ${color === c ? 'on' : ''}`} style={{ background: hex(c) }} onClick={() => setColor(c)} />)}

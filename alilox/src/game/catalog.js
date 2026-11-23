@@ -17,5 +17,18 @@ export const WORLDS=[
  {id:'treasure',ic:'🏝️',modes:['solo','online'],timed:90,th:[100,175,240]},
  {id:'tag',ic:'👹',modes:['solo','online'],survive:90,th:[40,80,120]},
  {id:'custom',ic:'🧱',modes:['solo'],hidden:true,th:[60,120,200]},
+ // Adventure campaign (unlocks in order)
+ {id:'c1',ic:'🟢',modes:['solo'],hidden:true,campaign:1,th:[60,100,150]},
+ {id:'c2',ic:'🪙',modes:['solo'],hidden:true,campaign:2,timed:60,th:[80,140,200]},
+ {id:'c3',ic:'🚗',modes:['solo'],hidden:true,campaign:3,th:[60,110,160]},
+ {id:'c4',ic:'🏃',modes:['solo'],hidden:true,campaign:4,runner:true,th:[150,260,340]},
+ {id:'c5',ic:'👊',modes:['solo'],hidden:true,campaign:5,fight:true,th:[60,110,150]},
+ {id:'c6',ic:'🌋',modes:['solo'],hidden:true,campaign:6,th:[70,130,190]},
+ {id:'c7',ic:'🚦',modes:['solo'],hidden:true,campaign:7,th:[60,110,160]},
+ {id:'c8',ic:'🌪️',modes:['solo'],hidden:true,campaign:8,th:[80,150,220]},
+ {id:'c9',ic:'🐲',modes:['solo'],hidden:true,campaign:9,fight:true,th:[100,200,300]},
+ {id:'c10',ic:'🏆',modes:['solo'],hidden:true,campaign:10,th:[120,220,320]},
 ];
 export const hex=c=>'#'+c.toString(16).padStart(6,'0');
+
+export const CAMPAIGN=[{id:'c1',en:'First Steps',ar:'الخطوات الأولى',d_en:'A gentle obby to warm up.',d_ar:'أوبي سهل للإحماء.'},{id:'c2',en:'Coin Garden',ar:'حديقة العملات',d_en:'Grab 15 coins in 60 seconds.',d_ar:'اجمع 15 عملة في 60 ثانية.'},{id:'c3',en:'Traffic Dash',ar:'عبور الشارع',d_en:'Cross 4 busy roads without getting hit!',d_ar:'اعبر 4 شوارع مزدحمة دون أن تصدمك سيارة!'},{id:'c4',en:'Dash Runner',ar:'العدّاء',d_en:'Auto-run and dodge the obstacles. 3 lives.',d_ar:'تجري تلقائيًا وتتفادى العوائق. 3 أرواح.'},{id:'c5',en:'Monster Arena',ar:'حلبة الوحوش',d_en:'Punch 4 monsters before they get you.',d_ar:'الكم 4 وحوش قبل أن تمسك بك.'},{id:'c6',en:'Lava Bridges',ar:'جسور الحمم',d_en:'Narrow bridges and moving platforms.',d_ar:'جسور ضيقة ومنصات متحركة.'},{id:'c7',en:'Rush Hour',ar:'ساعة الذروة',d_en:'6 roads, faster cars.',d_ar:'6 شوارع وسيارات أسرع.'},{id:'c8',en:'Tower Storm',ar:'عاصفة البرج',d_en:'A taller, tighter tower.',d_ar:'برج أعلى وأضيق.'},{id:'c9',en:'Boss Fight',ar:'معركة الزعيم',d_en:'A giant boss with 12 HP and two minions.',d_ar:'زعيم عملاق بـ12 نقطة حياة مع تابعَين.'},{id:'c10',en:'Grand Finale',ar:'الختام الكبير',d_en:'The ultimate sky race.',d_ar:'سباق السماء النهائي.'}];
