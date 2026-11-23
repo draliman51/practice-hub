@@ -49,7 +49,7 @@ create index if not exists profiles_parent_idx on public.profiles(parent_id);
 
 -- level formula: level n needs 100*n^1.5 xp cumulative (simple & fun)
 create or replace function public.level_for_xp(x int) returns int language sql immutable as $$
-  select greatest(1, floor(power(greatest(x,0)::float/100.0, 1.0/1.5))::int + 1);
+  select greatest(1, floor(power(greatest(x,0)::float/60.0, 1.0/1.5))::int + 1);
 $$;
 
 -- keep level in sync & protect sensitive columns from self-edit
@@ -232,7 +232,7 @@ begin
   select * into me from public.profiles where id = auth.uid();
   if me.status <> 'active' then raise exception 'Account not active'; end if;
   gain := least(60, greatest(0, p_coins)) + case when p_finished then 20 else 0 end;
-  xp_gain := least(400, greatest(0, p_score)) + least(60, greatest(0, p_coins)) * 2 + case when p_finished then 50 else 0 end;
+  xp_gain := gain;  -- levels are driven by coins only
   old_level := public.level_for_xp(me.xp);
   insert into public.scores(user_id, world, mode, score, time_s, coins, finished) values (me.id, p_world, p_mode, least(2000,greatest(0,p_score)), p_time, p_coins, p_finished);
   if p_finished and not (p_world = any(me.worlds_done)) then me.worlds_done := array_append(me.worlds_done, p_world); end if;
@@ -250,7 +250,7 @@ begin
       select * into qp from public.quest_progress where user_id = me.id and quest_id = q.id and period_key = pk;
       if qp.progress >= q.target and not qp.claimed then
         update public.quest_progress set claimed = true where user_id = me.id and quest_id = q.id and period_key = pk;
-        gain := gain + q.reward_coins; xp_gain := xp_gain + q.reward_xp;
+        gain := gain + q.reward_coins; xp_gain := xp_gain + q.reward_coins;
         done_q := done_q || json_build_object('id', q.id, 'icon', q.icon, 'coins', q.reward_coins, 'xp', q.reward_xp);
       end if;
     end if;
