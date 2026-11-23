@@ -40,7 +40,7 @@ export default function HubClient({ profile, photoUrl, season, quests, qp, bestB
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setPick(pick === w.id ? null : w.id)}><div className="text-4xl">{w.ic}</div><div className="grow"><b className="text-lg">{worldName(w.id)}</b> {profile.worlds_done.includes(w.id) && '✅'}<div className="muted text-sm">{(t as any)(w.id + 'D')}</div>{bestBy[w.id] != null && <div className="text-xs text-sun">Best: {bestBy[w.id]}</div>}</div><span className="text-2xl">{pick === w.id ? '▾' : '▸'}</span></div>
         {pick === w.id && <div className="mt-3 flex flex-wrap gap-2 pop">
           <Link className="btn-mint btn-sm" href={w.mini ? '/play/race' : `/play/${w.id}`}>🧍 {t('justMe')}</Link>
-          {w.modes.includes('cpu') && <Link className="btn-mint btn-sm" href={`/play/${w.id}?mode=cpu`}>🤖 {t('vsRobot')}</Link>}
+          {w.modes.includes('cpu') && <Link className="btn-mint btn-sm" href={`/play/${w.id}?mode=cpu`}>🤖 {t('vsAI')}</Link>}
           {w.modes.includes('online') && <Link className="btn-candy btn-sm" href={`/rooms?world=${w.id}`}>🌐 {t('online')}</Link>}
         </div>}</div>)}</div>
     </Section>

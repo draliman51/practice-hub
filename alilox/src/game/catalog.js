@@ -13,6 +13,9 @@ export const WORLDS=[
  {id:'park',ic:'🎡',modes:['solo','online'],timed:60,th:[150,280,380]},
  {id:'arena',ic:'🟥',modes:['solo','online'],th:[20,45,70]},
  {id:'race',ic:'🐾',modes:['solo','online'],mini:true,th:[1,2,3]},
+ {id:'skyrace',ic:'🏎️',modes:['solo','cpu','online'],robotTime:60,th:[80,150,220]},
+ {id:'treasure',ic:'🏝️',modes:['solo','online'],timed:90,th:[100,175,240]},
+ {id:'tag',ic:'👹',modes:['solo','online'],survive:90,th:[40,80,120]},
  {id:'custom',ic:'🧱',modes:['solo'],hidden:true,th:[60,120,200]},
 ];
 export const hex=c=>'#'+c.toString(16).padStart(6,'0');

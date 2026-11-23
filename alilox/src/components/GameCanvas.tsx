@@ -26,7 +26,7 @@ export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others =
     (async () => {
       const eng = await import('@/game/engine'); if (dead || !hostRef.current) return;
       const host = hostRef.current, canvas = host.querySelector('canvas')!;
-      const game = eng.createGame({ host, canvas, world, data, mode, seed: room ? [...room].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) : Date.now() % 100000, settings, season: season?.theme, names, event: event && (event.world === world || event.world === 'all') ? event : null,
+      const game = eng.createGame({ host, canvas, world, data, mode, seed: room ? [...room].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) : Date.now() % 100000, settings, lang, season: season?.theme, names, event: event && (event.world === world || event.world === 'all') ? event : null,
         me: { id: me.id, name: me.display_name, avatar: me.avatar, photoUrl: myPhotoUrl }, others,
         on: { sfx: play, net: (m: any) => chanRef.current?.send({ type: 'broadcast', event: 'g', payload: m }), portal: (id: string) => { if (preview) return; if (id === 'house') router.push('/house'); else if (id === 'worlds') router.push('/worlds'); else if (id === 'shop') router.push('/shop'); else router.push(`/play/${id}`); },
           finish: async (run: Run) => { if (preview) { setResult({ run }); return; }
@@ -48,13 +48,13 @@ export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others =
   }, [world, mode, room]);
 
   const toggleMic = async () => { try { const s = await voiceMic(others.map((o) => o.id)); setMic(s); toast(s === 'on' ? '🎤 ' + t('voice') : '🔇 ' + t('mute')); } catch (e: any) { toast(lang === 'ar' ? '🎤 الميكروفون غير متاح — اسمح به من إعدادات المتصفح' : '🎤 Microphone not available — allow it in the browser'); } };
-  const tnames = { obby: t('obby'), tower: t('tower'), park: t('park'), arena: t('arena'), city: t('city') } as Record<string, string>;
+  const tnames = { obby: t('obby'), tower: t('tower'), park: t('park'), arena: t('arena'), city: t('city'), skyrace: t('skyrace'), treasure: t('treasure'), tag: t('tag') } as Record<string, string>;
   const stars = result ? (W.th ? (result.run.score >= W.th[2] ? 3 : result.run.score >= W.th[1] ? 2 : result.run.score >= W.th[0] ? 1 : 0) : 0) : 0;
   return (
     <div>
       <div id="alx" ref={hostRef}>
         <canvas />
-        <div id="alx-hud"><span className="pill y">🪙 <b id="alx-coins">0</b></span><span className="pill">⏱ <b id="alx-time">{W.timed || 0}</b>s</span><span className="pill" id="alx-deaths" hidden>💀 <b>0</b></span>{mode === 'cpu' && <span className="pill" id="alx-robot">🤖 0%</span>}{mode === 'online' && <span className="pill">🌐 {others.length + 1}</span>}</div>
+        <div id="alx-hud"><span className="pill y">🪙 <b id="alx-coins">0</b></span><span className="pill">⏱ <b id="alx-time">{W.timed || 0}</b>s</span><span className="pill" id="alx-deaths" hidden>💀 <b>0</b></span>{mode === 'cpu' && <span className="pill" id="alx-robot">🏁 0/3</span>}{world === 'treasure' && <span className="pill" id="alx-chests">💰 0/8</span>}{mode === 'online' && <span className="pill">🌐 {others.length + 1}</span>}</div>
         <div id="alx-msg" />
         <div id="alx-joy" hidden><div className="knob" /></div>
         <div id="alx-top">{mode === 'online' && <button className="btn-ghost btn-sm" onClick={toggleMic}>{mic === 'on' ? '🎤' : mic === 'muted' ? '🔇' : '🎙️'}</button>}{world !== 'city' && <button className="btn-ghost btn-sm" onClick={() => gameRef.current?.end()}>⏹</button>}{(world === 'city' || preview) && <button className="btn-ghost btn-sm" onClick={() => (onExit ? onExit() : router.push('/play'))}>✕</button>}</div>
@@ -63,8 +63,8 @@ export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others =
         <button id="alx-jump">JUMP</button>
         {loading && <div id="alx-load">🧱 Loading your block world…</div>}
         {result && <div className="absolute inset-0 grid place-items-center bg-ink/70 p-4"><div className="card w-full max-w-sm text-center pop">
-          <div className="text-5xl">{result.run.finished ? (result.rank === 1 ? '🥇' : result.rank === 2 ? '🥈' : result.rank === 3 ? '🥉' : '🏆') : '🏁'}</div>
-          <h2 className="text-2xl mt-1">{result.run.finished ? (result.rank ? `#${result.rank} / ${result.n}` : (lang === 'ar' ? 'أحسنت!' : 'Awesome!')) : (lang === 'ar' ? 'انتهت الجولة' : 'Run ended')}</h2>
+          <div className="text-5xl">{result.run.finished ? ((result.rank || (result.run as any).rank) === 1 ? '🥇' : (result.rank || (result.run as any).rank) === 2 ? '🥈' : (result.rank || (result.run as any).rank) === 3 ? '🥉' : '🏆') : (world === 'tag' ? '👹' : '🏁')}</div>
+          <h2 className="text-2xl mt-1">{result.run.finished ? (result.rank ? `#${result.rank} / ${result.n}` : (result.run as any).rank ? `#${(result.run as any).rank} ${lang === 'ar' ? 'ضد الأصدقاء' : 'vs AI friends'}` : (lang === 'ar' ? 'أحسنت!' : 'Awesome!')) : (lang === 'ar' ? 'انتهت الجولة' : 'Run ended')}</h2>
           <div className="text-2xl text-sun tracking-widest">{'★'.repeat(stars)}{'☆'.repeat(3 - stars)}</div>
           <p className="muted mt-1">{tnames[world] || world} · {lang === 'ar' ? 'النقاط' : 'Score'} <b className="text-white">{result.run.score}</b> · 🪙 {result.run.coins}{result.run.time ? ` · ⏱ ${result.run.time}s` : ''}{result.run.deaths ? ` · 💀 ${result.run.deaths}` : ''}</p>
           {result.reward && <p className="mt-2 text-sun font-bold">+{result.reward.coins} 🪙 · +{result.reward.xp} XP{result.reward.badges?.length ? ' · 🏅 ' + result.reward.badges.join(', ') : ''}</p>}
