@@ -12,3 +12,4 @@ export interface Item { id: string; kind: string; name_en: string; name_ar: stri
 export interface Quest { id: string; period: 'daily' | 'weekly'; kind: string; target: number; title_en: string; title_ar: string; reward_coins: number; reward_xp: number; icon: string; active: boolean }
 export interface Season { id: string; name_en: string; name_ar: string; icon: string; theme: { sky?: string; accent?: string; snow?: boolean }; starts_at: string; ends_at: string; active: boolean }
 export const XP_FOR_LEVEL = (lvl: number) => Math.round(100 * Math.pow(lvl - 1, 1.5));
+export interface AliloxEvent { id: string; title: string; message: string; icon: string; world: string; starts_at: string; ends_at: string; reward_coins: number; badge: string | null; active: boolean }

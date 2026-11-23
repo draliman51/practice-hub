@@ -1,16 +1,20 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AvatarPreview from '@/components/AvatarPreview';
 import { Section, rpc } from '@/components/AppShell';
 import { toast, confetti } from '@/components/Toast';
 import { useT } from '@/lib/i18n';
 import { WORLDS } from '@/game/catalog';
 import { play } from '@/game/sfx';
-import type { Profile, Quest, Season } from '@/lib/types';
+import type { Profile, Quest, Season, AliloxEvent } from '@/lib/types';
 import { XP_FOR_LEVEL } from '@/lib/types';
-export default function HubClient({ profile, photoUrl, season, quests, qp, bestBy }: { profile: Profile; photoUrl: string | null; season: Season | null; quests: Quest[]; qp: any[]; bestBy: Record<string, number> }) {
+export default function HubClient({ profile, photoUrl, season, quests, qp, bestBy, evNow, evNext }: { profile: Profile; photoUrl: string | null; season: Season | null; quests: Quest[]; qp: any[]; bestBy: Record<string, number>; evNow: AliloxEvent | null; evNext: AliloxEvent | null }) {
+  const [popup, setPopup] = useState<AliloxEvent | null>(null); const [left, setLeft] = useState('');
+  useEffect(() => { if (evNow) { try { const k = 'alilox_ev_' + evNow.id; if (!localStorage.getItem(k)) { setPopup(evNow); localStorage.setItem(k, '1'); } } catch { setPopup(evNow); } } }, [evNow]);
+  useEffect(() => { if (!evNext) return; const f = () => { const ms = new Date(evNext.starts_at).getTime() - Date.now(); if (ms <= 0) { setLeft(''); window.location.reload(); return; } const h = Math.floor(ms / 36e5), m = Math.floor(ms % 36e5 / 6e4), s = Math.floor(ms % 6e4 / 1e3); setLeft(`${h > 0 ? h + 'h ' : ''}${m}m ${s}s`); }; f(); const iv = setInterval(f, 1000); return () => clearInterval(iv); }, [evNext]);
+  const checkin = async (ev: AliloxEvent) => { const d = await rpc<any>('event_checkin', { p_event: ev.id }); setPopup(null); if (d && !d.already) { confetti(); play('win'); toast(`🎁 +${d.coins} 🪙${d.badge ? ' · 🏅' : ''}`); r.refresh(); } };
   const { t, lang } = useT(); const r = useRouter(); const [pick, setPick] = useState<string | null>(null); const [gift, setGift] = useState(profile.last_gift === new Date().toISOString().slice(0, 10));
   const today = new Date().toISOString().slice(0, 10); const monday = (() => { const d = new Date(); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return d.toISOString().slice(0, 10); })();
   const prog = (q: Quest) => qp.find((p) => p.quest_id === q.id && p.period_key === (q.period === 'daily' ? today : monday));
@@ -18,6 +22,9 @@ export default function HubClient({ profile, photoUrl, season, quests, qp, bestB
   const claimGift = async () => { const d = await rpc<any>('claim_daily_gift'); if (d) { confetti(); play('win'); toast(`🎁 +${d.coins} 🪙 · 🔥 ${d.streak}`); setGift(true); r.refresh(); } };
   const worldName = (id: string) => (t as any)(id);
   return <div>
+    {popup && <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-5" onClick={() => setPopup(null)}><div className="card max-w-sm text-center pop bg-gradient-to-b from-indigo-800 to-fuchsia-800" onClick={(e) => e.stopPropagation()}><div className="text-6xl">{popup.icon}</div><h2 className="mt-2 text-2xl">{popup.title}</h2><p className="mt-3 text-lg leading-relaxed" dir="ltr">{popup.message}</p><button className="btn-sun mt-5 w-full" onClick={() => checkin(popup)}>🎁 {lang === 'ar' ? 'استلم هدية الحدث' : 'Claim event gift'} (+{popup.reward_coins} 🪙)</button></div></div>}
+    {evNow && <Link href="/play/city" className="card mb-4 flex items-center gap-3 border-sun bg-gradient-to-r from-pink-600 to-amber-500 animate-pulse"><div className="text-4xl">{evNow.icon}</div><div className="grow"><b className="text-lg">{evNow.title} — {lang === 'ar' ? 'الحدث يجري الآن!' : 'LIVE now!'}</b><div className="text-sm text-white/90">{lang === 'ar' ? 'ادخل المدينة: ألعاب نارية وبالونات وهدايا 🎆' : 'Join the city: fireworks, balloons and gifts 🎆'}</div></div><span className="btn-sun btn-sm">▶</span></Link>}
+    {!evNow && evNext && <div className="card mb-4 flex items-center gap-3 border-grape"><div className="text-4xl">{evNext.icon}</div><div className="grow"><b>{evNext.title}</b><div className="text-sm muted">{lang === 'ar' ? 'يبدأ' : 'Starts'} {new Date(evNext.starts_at).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-GB', { hour: '2-digit', minute: '2-digit', weekday: 'long' })} · ⏳ <span className="text-sun font-bold">{left}</span></div></div></div>}
     {season && <div className="card mb-4 flex items-center gap-3" style={{ background: `linear-gradient(135deg, ${season.theme.accent || '#60A5FA'}55, transparent)` }}><div className="text-4xl">{season.icon}</div><div><b>{lang === 'ar' ? season.name_ar : season.name_en}</b><div className="muted text-sm">{lang === 'ar' ? 'موسم خاص بعوالم وأجواء جديدة!' : 'Special season with new vibes in every world!'}</div></div></div>}
     <div className="card flex items-center gap-4">
       <AvatarPreview p={{ name: profile.display_name, avatar: profile.avatar, photoUrl }} />

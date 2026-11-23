@@ -6,8 +6,8 @@ import { toast } from '@/components/Toast';
 import { useT, nameOf } from '@/lib/i18n';
 import { play } from '@/game/sfx';
 import type { Profile, Item } from '@/lib/types';
-const WALLS = ['#FDE68A', '#BFDBFE', '#FBCFE8', '#D9F99D', '#E9D5FF']; const FLOORS = ['#D6D3D1', '#B45309', '#86EFAC', '#93C5FD', '#FCA5A5'];
-const WALL_ITEM: Record<string, number> = { wall_blue: 1, wall_pink: 2 }; const FLOOR_ITEM: Record<string, number> = { floor_wood: 1, floor_grass: 2 };
+const WALLS = ['#FDE68A', '#D9F99D', '#E9D5FF', '#FDBA74', '#A5F3FC', '#BFDBFE', '#FBCFE8']; const FLOORS = ['#D6D3D1', '#93C5FD', '#FCA5A5', '#FDE68A', '#C4B5FD', '#B45309', '#86EFAC'];
+const WALL_ITEM: Record<number, string> = { 5: 'wall_blue', 6: 'wall_pink' }; const FLOOR_ITEM: Record<number, string> = { 5: 'floor_wood', 6: 'floor_grass' };
 export default function HouseClient({ profile, items, visit }: { profile: Profile; items: Item[]; visit: any }) {
   const { t, lang } = useT(); const r = useRouter(); const ro = !!visit && visit.id !== profile.id; const [h, setH] = useState<Profile['house']>(ro ? visit.house : profile.house); const [tool, setTool] = useState<string>('sofa'); const [busy, setBusy] = useState(false);
   const furn = items.filter((i) => i.kind === 'furniture' && profile.owned.includes(i.id)); const ic = (id: string) => items.find((i) => i.id === id)?.icon || '❓';
@@ -21,8 +21,8 @@ export default function HouseClient({ profile, items, visit }: { profile: Profil
       <h2 className="mt-4 mb-2 text-lg">🛋️ {lang === 'ar' ? 'الأثاث' : 'Furniture'}</h2><div className="flex flex-wrap gap-2">{furn.map((i) => <button key={i.id} className={`chip ${tool === i.id ? 'on' : ''}`} onClick={() => setTool(i.id)}>{i.icon} {nameOf(lang, i)}</button>)}<button className={`chip ${tool === 'erase' ? 'on' : ''}`} onClick={() => setTool('erase')}>🧹 {lang === 'ar' ? 'مسح' : 'Erase'}</button></div>
       {furn.length === 0 && <p className="muted mt-2 text-sm">{lang === 'ar' ? 'اشترِ أثاثًا من المتجر 🛍️' : 'Buy furniture in the Shop 🛍️'}</p>}
       <h2 className="mt-4 mb-2 text-lg">🎨 {lang === 'ar' ? 'الجدران والأرضية' : 'Walls & floor'}</h2>
-      <div className="flex flex-wrap gap-2">{WALLS.map((c, i) => { const locked = i > 0 && !profile.owned.includes(Object.keys(WALL_ITEM).find((k) => WALL_ITEM[k] === i) || '') && i < 3; return <span key={c} className={`sw ${h.wall === i ? 'on' : ''} ${locked ? 'opacity-40' : ''}`} style={{ background: c }} onClick={() => !locked && setH({ ...h, wall: i })} />; })}<span className="muted text-xs self-center">{lang === 'ar' ? 'جدران' : 'walls'}</span></div>
-      <div className="mt-2 flex flex-wrap gap-2">{FLOORS.map((c, i) => { const locked = i > 0 && !profile.owned.includes(Object.keys(FLOOR_ITEM).find((k) => FLOOR_ITEM[k] === i) || '') && i < 3; return <span key={c} className={`sw ${h.floor === i ? 'on' : ''} ${locked ? 'opacity-40' : ''}`} style={{ background: c }} onClick={() => !locked && setH({ ...h, floor: i })} />; })}<span className="muted text-xs self-center">{lang === 'ar' ? 'أرضية' : 'floor'}</span></div>
+      <div className="flex flex-wrap gap-2">{WALLS.map((c, i) => { const locked = !!WALL_ITEM[i] && !profile.owned.includes(WALL_ITEM[i]); return <span key={c} className={`sw ${h.wall === i ? 'on' : ''} ${locked ? 'opacity-40' : ''}`} style={{ background: c }} onClick={() => { if (locked) { toast(lang === 'ar' ? '🔒 من المتجر' : '🔒 Buy in the Shop'); return; } play('tap'); setH({ ...h, wall: i }); }} />; })}<span className="muted text-xs self-center">{lang === 'ar' ? 'جدران' : 'walls'}</span></div>
+      <div className="mt-2 flex flex-wrap gap-2">{FLOORS.map((c, i) => { const locked = !!FLOOR_ITEM[i] && !profile.owned.includes(FLOOR_ITEM[i]); return <span key={c} className={`sw ${h.floor === i ? 'on' : ''} ${locked ? 'opacity-40' : ''}`} style={{ background: c }} onClick={() => { if (locked) { toast(lang === 'ar' ? '🔒 من المتجر' : '🔒 Buy in the Shop'); return; } play('tap'); setH({ ...h, floor: i }); }} />; })}<span className="muted text-xs self-center">{lang === 'ar' ? 'أرضية' : 'floor'}</span></div>
       <p className="muted mt-3 text-xs">{lang === 'ar' ? 'أصدقاؤك يمكنهم زيارة بيتك من صفحة الأصدقاء.' : 'Friends can visit your house from the Friends page.'}</p></>}
   </div>;
 }

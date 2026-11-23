@@ -10,10 +10,10 @@ import { voiceJoin, voiceMic, voiceDial, voiceLeave, voiceState } from '@/game/v
 import type { Profile, Player, Season } from '@/lib/types';
 
 export interface PlayerLite { id: string; name: string; avatar: any; photoUrl?: string | null }
-interface Props { world: string; mode: 'solo' | 'cpu' | 'online'; me: Profile; myPhotoUrl?: string | null; room?: string; others?: PlayerLite[]; data?: any; season?: Season | null; preview?: boolean; onExit?: () => void }
+interface Props { world: string; mode: 'solo' | 'cpu' | 'online'; me: Profile; myPhotoUrl?: string | null; room?: string; others?: PlayerLite[]; data?: any; season?: Season | null; event?: any; preview?: boolean; onExit?: () => void }
 export interface Run { world: string; mode: string; score: number; coins: number; time: number; deaths: number; finished: boolean; beatRobot: boolean }
 
-export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others = [], data, season, preview, onExit }: Props) {
+export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others = [], data, season, event, preview, onExit }: Props) {
   const { t, lang } = useT(); const router = useRouter();
   const hostRef = useRef<HTMLDivElement>(null); const gameRef = useRef<any>(null); const chanRef = useRef<any>(null);
   const [loading, setLoading] = useState(true); const [result, setResult] = useState<null | { run: Run; reward?: any; rank?: number; n?: number }>(null);
@@ -26,7 +26,7 @@ export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others =
     (async () => {
       const eng = await import('@/game/engine'); if (dead || !hostRef.current) return;
       const host = hostRef.current, canvas = host.querySelector('canvas')!;
-      const game = eng.createGame({ host, canvas, world, data, mode, seed: room ? [...room].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) : Date.now() % 100000, settings, season: season?.theme, names,
+      const game = eng.createGame({ host, canvas, world, data, mode, seed: room ? [...room].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) : Date.now() % 100000, settings, season: season?.theme, names, event: event && (event.world === world || event.world === 'all') ? event : null,
         me: { id: me.id, name: me.display_name, avatar: me.avatar, photoUrl: myPhotoUrl }, others,
         on: { sfx: play, net: (m: any) => chanRef.current?.send({ type: 'broadcast', event: 'g', payload: m }), portal: (id: string) => { if (preview) return; if (id === 'house') router.push('/house'); else if (id === 'worlds') router.push('/worlds'); else if (id === 'shop') router.push('/shop'); else router.push(`/play/${id}`); },
           finish: async (run: Run) => { if (preview) { setResult({ run }); return; }

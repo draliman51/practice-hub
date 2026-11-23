@@ -5,7 +5,7 @@ import { toast, confetti } from '@/components/Toast';
 import { useT } from '@/lib/i18n';
 import { play } from '@/game/sfx';
 import type { Profile, Quest } from '@/lib/types';
-const BADGES = [{ id: 'first', en: 'First portal', ar: 'أول بوابة', ic: '🌀' }, { id: 'robot', en: 'Robot beater', ar: 'هازم الروبوت', ic: '🤖' }, { id: 'nofall', en: 'No falls!', ar: 'بلا سقوط', ic: '🧗' }, { id: 'worlds', en: 'Explorer', ar: 'المستكشف', ic: '🗺️' }, { id: 'streak3', en: '3-day streak', ar: '3 أيام متتالية', ic: '🔥' }];
+const BADGES = [{ id: 'first', en: 'First portal', ar: 'أول بوابة', ic: '🌀' }, { id: 'robot', en: 'Robot beater', ar: 'هازم الروبوت', ic: '🤖' }, { id: 'nofall', en: 'No falls!', ar: 'بلا سقوط', ic: '🧗' }, { id: 'worlds', en: 'Explorer', ar: 'المستكشف', ic: '🗺️' }, { id: 'streak3', en: '3-day streak', ar: '3 أيام متتالية', ic: '🔥' }, { id: 'launch', en: 'Launch Party', ar: 'حفل الافتتاح', ic: '🎉' }];
 export default function QuestsClient({ profile, quests, qp }: { profile: Profile; quests: Quest[]; qp: any[] }) {
   const { t, lang } = useT(); const r = useRouter();
   const today = new Date().toISOString().slice(0, 10); const monday = (() => { const d = new Date(); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return d.toISOString().slice(0, 10); })();

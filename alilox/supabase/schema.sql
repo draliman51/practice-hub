@@ -396,6 +396,30 @@ drop trigger if exists room_guard_trg on public.room_members;
 create trigger room_guard_trg before insert on public.room_members for each row execute function public.room_guard();
 
 
+-- ---------- scheduled events (launch party etc.) ----------
+create table if not exists public.events (
+  id text primary key, title text not null, message text not null, icon text not null default '🎉', world text not null default 'city',
+  starts_at timestamptz not null, ends_at timestamptz not null, reward_coins int not null default 50, badge text, active boolean not null default true);
+create table if not exists public.event_checkins (user_id uuid references public.profiles(id) on delete cascade, event_id text references public.events(id) on delete cascade, at timestamptz default now(), primary key(user_id, event_id));
+alter table public.events enable row level security; alter table public.event_checkins enable row level security;
+drop policy if exists events_read on public.events; create policy events_read on public.events for select to anon, authenticated using (true);
+drop policy if exists events_admin on public.events; create policy events_admin on public.events for all to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists ec_read on public.event_checkins; create policy ec_read on public.event_checkins for select to authenticated using (user_id = auth.uid() or public.is_admin());
+create or replace function public.event_checkin(p_event text) returns json language plpgsql security definer set search_path=public as $$
+declare e public.events; done boolean;
+begin
+  perform set_config('app.bypass','1',true);
+  select * into e from public.events where id = p_event and active and now() between starts_at and ends_at;
+  if e.id is null then raise exception 'Event is not running'; end if;
+  select exists(select 1 from public.event_checkins where user_id = auth.uid() and event_id = p_event) into done;
+  if done then return json_build_object('coins', 0, 'already', true); end if;
+  insert into public.event_checkins(user_id, event_id) values (auth.uid(), p_event);
+  update public.profiles set coins = coins + e.reward_coins, xp = xp + 100,
+    badges = case when e.badge is not null and not (e.badge = any(badges)) then array_append(badges, e.badge) else badges end where id = auth.uid();
+  return json_build_object('coins', e.reward_coins, 'badge', e.badge);
+end $$;
+grant all on public.events, public.event_checkins to anon, authenticated, service_role;
+
 -- ---------- table privileges (RLS still decides row access) ----------
 grant usage on schema public to anon, authenticated, service_role;
 grant all on all tables in schema public to anon, authenticated, service_role;
@@ -438,6 +462,10 @@ on conflict (id) do nothing;
 insert into public.seasons (id, name_en, name_ar, icon, theme, starts_at, ends_at) values
  ('winter26','Winter Wonderland','موسم الشتاء','❄️','{"sky":"#BFE3FF","accent":"#60A5FA","snow":true}','2026-12-01','2027-01-31'),
  ('national','National Day','اليوم الوطني','🇸🇦','{"sky":"#A7F3D0","accent":"#16A34A"}','2026-09-20','2026-09-25')
+on conflict (id) do nothing;
+
+insert into public.events (id, title, message, icon, world, starts_at, ends_at, reward_coins, badge) values
+ ('launch','Alilox Launch Party','Welcome guys to the Ali-lox world .. a gift from your dad 🤍','🎉','city','2026-11-23 13:00:00+03','2026-11-23 16:00:00+03',50,'launch')
 on conflict (id) do nothing;
 
 -- =====================================================================

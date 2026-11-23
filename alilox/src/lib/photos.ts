@@ -6,3 +6,11 @@ export async function currentSeason(sb: SupabaseClient) {
   const today = new Date().toISOString().slice(0, 10);
   const { data } = await sb.from('seasons').select('*').eq('active', true).lte('starts_at', today).gte('ends_at', today).limit(1); return data?.[0] || null;
 }
+export async function currentEvent(sb: SupabaseClient) {
+  const now = new Date().toISOString();
+  const { data } = await sb.from('events').select('*').eq('active', true).lte('starts_at', now).gte('ends_at', now).order('starts_at').limit(1); return data?.[0] || null;
+}
+export async function nextEvent(sb: SupabaseClient) {
+  const now = new Date().toISOString();
+  const { data } = await sb.from('events').select('*').eq('active', true).gt('starts_at', now).order('starts_at').limit(1); return data?.[0] || null;
+}
