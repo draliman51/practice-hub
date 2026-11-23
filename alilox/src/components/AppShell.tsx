@@ -17,7 +17,8 @@ export default function AppShell({ profile, children, wide }: { profile: Profile
   const nav = [
     ['/play', '🏙️', t('home')], ['/rooms', '👥', t('rooms')], ['/avatar', '🧍', t('avatar')], ['/shop', '🛍️', t('shop')], ['/friends', '🤝', t('friends')],
   ] as const;
-  const more = [['/quests', '⭐', t('quests')], ['/house', '🏠', t('house')], ['/editor', '🧱', t('editor')], ['/worlds', '🌍', t('worlds')], ['/settings', '⚙️', t('settings')]] as const;
+  const more = ([['/quests', '⭐', t('quests')], ['/house', '🏠', t('house')], ['/editor', '🧱', t('editor')], ['/worlds', '🌍', t('worlds')], ['/settings', '⚙️', t('settings')]] as [string, string, string][])
+    .concat(profile.role !== 'child' ? [['/parent', '👨‍👩‍👧', t('parentDash')]] : []).concat(profile.role === 'admin' ? [['/admin', '🛡️', t('admin')]] : []);
   const blocked = profile.role === 'child' && gate && !gate.allowed;
   return (
     <div className="min-h-screen pb-24">
@@ -27,7 +28,8 @@ export default function AppShell({ profile, children, wide }: { profile: Profile
           <div className="grow" />
           <span className="pill-sun">🪙 {profile.coins}</span><span className="pill">⭐ {t('level')} {profile.level}</span>
           <button className="btn-ghost btn-sm" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'EN' : 'ع'}</button>
-          {(profile.role === 'parent' || profile.role === 'admin') && <Link className="btn-ghost btn-sm" href={profile.role === 'admin' ? '/admin' : '/parent'}>{profile.role === 'admin' ? '🛡️' : '👨‍👩‍👧'}</Link>}
+          {(profile.role === 'parent' || profile.role === 'admin') && <Link className="btn-ghost btn-sm" href="/parent" title={t('parent')}>👨‍👩‍👧</Link>}
+          {profile.role === 'admin' && <Link className="btn-ghost btn-sm" href="/admin" title={t('admin')}>🛡️</Link>}
           <button className="btn-ghost btn-sm" onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.assign('/'); }}>{t('logout')}</button>
         </div>
       </header>
