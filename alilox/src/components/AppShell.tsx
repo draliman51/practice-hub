@@ -51,5 +51,5 @@ export function Section({ title, children, action }: { title: string; children: 
   return <section className="mb-5"><div className="mb-2 flex items-center"><h2 className="text-xl grow">{title}</h2>{action}</div>{children}</section>;
 }
 export async function rpc<T = any>(fn: string, args: Record<string, any> = {}): Promise<T | null> {
-  const { data, error } = await supabase().rpc(fn, args); if (error) { toast('😕 ' + error.message); return null; } return data as T;
+  const { data, error } = await supabase().rpc(fn, args); if (error) { toast('😕 ' + error.message); return null; } return (data ?? true) as T;
 }
