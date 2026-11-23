@@ -10,6 +10,7 @@ export async function currentProfile() {
   const sb = supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return { sb, user: null, profile: null };
-  const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
-  return { sb, user, profile };
+  const { data: profile, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if (error) console.error('profile load error', error);
+  return { sb, user, profile, profileError: error?.message || null };
 }
