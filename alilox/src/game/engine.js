@@ -196,6 +196,7 @@ export function createGame(o) {
     moveBody(S, vx, vz, dt);
     if (S.onGround && S.ground) { const p = S.ground; if (p.kind === 'check' && !p.hit) { p.hit = true; S.cp.set(p.x, p.y + p.h / 2, p.z); p.flag.material.color.set(0xFFD23F); sfx('ok'); msg('Checkpoint! 🚩', 1200); } if (p.kind === 'finish' && !S.done) { finish(true); return; } }
     if (S.pos.y < -4) respawn();
+    coins.forEach(c => { if (c.got) return; c.m.rotation.z += dt * 3; if (Math.abs(c.x - S.pos.x) < 1 && Math.abs(c.z - S.pos.z) < 1 && S.pos.y + HT > c.y - .6 && S.pos.y < c.y + .6) { c.got = true; c.m.visible = false; S.coins++; hud('coins', S.coins); sfx('ok'); if (o.world === 'park' && S.coins === coins.length) finish(true); } });
     chests.forEach(c => { if (c.gone) return; c.lid.rotation.z = Math.sin(S.t * 3) * .05; if (Math.abs(c.x - S.pos.x) < 1.3 && Math.abs(c.z - S.pos.z) < 1.3 && Math.abs(S.pos.y - c.y) < 2.2) { c.gone = true; c.mesh.visible = false; c.lid.visible = false; c.lb.visible = false; S.chests++; S.coins += 3; hud('coins', S.coins); hud('chests', S.chests + '/' + chests.length); sfx('win'); msg('Treasure! 💰 +3', 1000); if (S.chests === chests.length) finish(true); } });
     sharks.forEach(g => { const k = g.userData.shark; k.a += dt * .4; g.position.set(Math.cos(k.a) * k.r, -5.2, Math.sin(k.a) * k.r); g.rotation.y = -k.a; });
     if (monsters.length && !S.done) { S.inv = Math.max(0, S.inv - dt); S.punchT = Math.max(0, S.punchT - dt);
