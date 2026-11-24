@@ -23,7 +23,8 @@ create table if not exists public.profiles (
   role user_role not null default 'child',
   status account_status not null default 'pending',
   parent_id uuid references public.profiles(id) on delete set null,
-  parent_email text,                       -- used while the account is still pending
+  parent_email text,                       -- the email linked to the account (parent's email, or the child's contact email)
+  link_parent boolean not null default true, -- child chose to link to a parent (pending approval) vs. direct account
   under13 boolean not null default true,
   friend_code text unique not null default upper(substr(encode(gen_random_bytes(4),'hex'),1,6)),
   avatar jsonb not null default '{"skin":0,"shirt":2,"pants":2,"hair":"short","hairc":0,"face":"😀","hat":"cap","back":"none","pet":"none"}',
@@ -77,11 +78,11 @@ declare v_role user_role := coalesce((new.raw_user_meta_data->>'role')::user_rol
         v_admins text[] := string_to_array(coalesce(current_setting('app.admin_emails', true), ''), ',');
 begin
   if new.email = any(v_admins) then v_role := 'admin'; end if;
-  insert into public.profiles (id, username, display_name, role, status, parent_email, under13, lang)
+  insert into public.profiles (id, username, display_name, role, status, parent_email, under13, lang, link_parent)
   values (new.id, v_username, coalesce(new.raw_user_meta_data->>'display_name', v_username), v_role,
-          case when v_role = 'child' then 'pending'::account_status else 'active'::account_status end,
+          case when v_role = 'child' and coalesce((new.raw_user_meta_data->>'link_parent')::boolean, true) then 'pending'::account_status else 'active'::account_status end,
           new.raw_user_meta_data->>'parent_email', coalesce((new.raw_user_meta_data->>'under13')::boolean, v_role='child'),
-          coalesce(new.raw_user_meta_data->>'lang','ar'))
+          coalesce(new.raw_user_meta_data->>'lang','ar'), coalesce((new.raw_user_meta_data->>'link_parent')::boolean, true))
   on conflict (id) do nothing;
   return new;
 end $$;
