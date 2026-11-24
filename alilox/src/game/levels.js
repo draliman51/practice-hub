@@ -3,6 +3,8 @@ const C={g:0x4ADE80,b:0x3B82F6,p:0xA78BFA,o:0xFF8A3D,t:0x2EE6D6,y:0xFFD23F,r:0xF
 export function level(id,data){
   const P=[],coins=[],portals=[],decor=[],cars=[],obstacles=[],monsters=[]; const add=(x,y,z,w,h,d,c,kind,mv)=>P.push({x,y,z,w,h,d,c,kind:kind||'plat',mv}); const coin=(x,z,y)=>coins.push({x,z,y:(y||0)+1.5});
   let spawn={x:0,y:.5,z:0,yaw:0};
+  // stairs(bx,bz,bw,top,dir): 1-unit steps leading from the ground (top 0.5) up to a block whose top is `top`; dir = [dx,dz] away from the block
+  const stairs=(bx,bz,bw,top,dir,col)=>{ const n=Math.round(top-.5); const across=Math.min(bw,3); for(let k=1;k<n;k++){ const st=.5+k; const dist=bw/2+(n-k-1)*1.5+.75; const x=bx+dir[0]*dist, z=bz+dir[1]*dist; add(x,st/2,z,dir[0]?1.5:across,st,dir[1]?1.5:across,col||0xCBD5E1,'plat'); } };
   if(id==='obby'){
     add(0,0,0,10,1,10,C.g,'start'); add(-2,0,8,3,1,3,C.b); add(2,0,12,3,1,3,C.p); add(-2,0,16,3,1,3,C.b); add(2,0,20,3,1,3,C.p); add(0,0,28,2,1,10,C.o); add(0,0,37,6,1,6,C.g,'check');
     add(0,1,43,3,1,3,C.t); add(0,2,47,3,1,3,C.b); add(0,3,51,3,1,3,C.t); add(0,4,55,4,1,4,C.b); add(0,4,62,4,1,4,C.y,'plat',{axis:'x',range:5,speed:1.1}); add(0,4,69,6,1,6,C.g,'check');
@@ -17,6 +19,7 @@ export function level(id,data){
     add(0,0,0,44,1,44,C.g,'start');
     const B=[[-14,1,-12,4],[-8,2,-14,3],[10,1,-10,5],[14,2,-4,3],[12,3,2,3],[-12,1,8,4],[-6,2,12,3],[0,3,14,3],[6,1,10,4],[-16,1,0,3],[16,1,12,3],[-2,1,-6,3],[4,2,-16,3],[-15,3,-5,3],[8,4,16,3]];
     B.forEach((b,i)=>add(b[0],b[1],b[2],b[3],1,b[3],[C.b,C.p,C.t,C.r,C.o,C.w][i%6])); B.forEach(b=>coin(b[0],b[2],b[1]));
+    B.forEach((b,i)=>{ if(b[1]>=2) stairs(b[0],b[2],b[3],b[1]+.5,[[1,0],[0,1],[-1,0],[0,-1]][i%4]); });
     [[-18,18],[18,-18],[0,-19],[-19,-19],[19,19],[9,5],[-9,-4],[3,19],[-19,5],[18,4],[-4,18],[12,-17],[-12,16],[0,5],[-7,3]].forEach(a=>coin(a[0],a[1],0));
     for(let i=0;i<10;i++){ const a=i/10*Math.PI*2; decor.push({kind:'tree',x:Math.cos(a)*19.5,z:Math.sin(a)*19.5}); }
   } else if(id==='arena'){
@@ -37,10 +40,10 @@ export function level(id,data){
     [[-10,0,-8],[10,0,8],[-10,0,8],[10,0,-8],[0,0,-16],[0,0,16],[-22,0,-22],[22,0,22]].forEach(a=>coin(a[0],a[2],a[1]));
   } else if(id==='treasure'){
     add(0,0,0,50,1,50,0xFDE68A,'start'); spawn={x:0,y:.6,z:-18,yaw:0};
-    const rocks=[[-16,1.5,-10,5],[14,2,-8,4],[18,3,6,4],[-18,2.5,8,5],[0,2,14,4],[-8,1.5,18,4],[9,3.5,16,3],[-4,1,-6,3]];
-    rocks.forEach((r,i)=>add(r[0],r[1],r[2],r[3],r[1]*2,r[3],[0x94A3B8,0x64748B,0x78716C][i%3],'plat'));
+    const rocks=[[-16,1.5,-10,5],[14,2,-8,4],[18,2.5,6,4],[-18,2,8,5],[0,2,14,4],[-8,1.5,18,4],[9,2.5,16,3],[-4,1,-6,3]];
+    rocks.forEach((r,i)=>{ add(r[0],r[1],r[2],r[3],r[1]*2,r[3],[0x94A3B8,0x64748B,0x78716C][i%3],'plat'); stairs(r[0],r[2],r[3],r[1]*2,[[1,0],[-1,0],[-1,0],[1,0],[0,-1],[0,-1],[-1,0],[0,1]][i],0xA8A29E); });
     // chests (on rocks and sand)
-    [[-16,3,-10],[14,4,-8],[18,6,6],[-18,5,8],[0,4,14],[9,7,16],[20,.5,-20],[-21,.5,20]].forEach(c=>P.push({x:c[0],y:c[1],z:c[2],w:1.2,h:.9,d:.9,c:0xB45309,kind:'chest'}));
+    [[-16,3,-10],[14,4,-8],[18,5,6],[-18,4,8],[0,4,14],[9,5,16],[20,.5,-20],[-21,.5,20]].forEach(c=>P.push({x:c[0],y:c[1],z:c[2],w:1.2,h:.9,d:.9,c:0xB45309,kind:'chest'}));
     [[-10,.5,-2],[6,.5,-14],[12,.5,2],[-6,.5,10],[4,.5,20],[-20,.5,-20],[20,.5,20],[0,.5,-8]].forEach(a=>coin(a[0],a[2],a[1]-.5));
     for(let i=0;i<10;i++){ const a=i/10*Math.PI*2; decor.push({kind:'palm',x:Math.cos(a)*23,z:Math.sin(a)*23}); }
     [[0,.2,24],[6,.2,22]].forEach(a=>add(a[0],a[1],a[2],2.4,.4,2.4,0x2EE6D6,'bounce'));
@@ -62,7 +65,7 @@ export function level(id,data){
   } else if(id==='c1'){ // Level 1 — First Steps (easy obby)
     add(0,0,0,8,1,8,C.g,'start'); for(let i=1;i<=6;i++){ add((i%2?-1.5:1.5),0,i*4+4,4,1,3,[C.b,C.p,C.t][i%3]); coin((i%2?-1.5:1.5),i*4+4); } add(0,0,34,6,1,6,C.g,'check'); for(let i=1;i<=4;i++) add(0,i*.8,36+i*4,3.5,1,3,C.o); add(0,4,56,8,1,8,C.y,'finish');
   } else if(id==='c2'){ // Level 2 — Coin Garden (timed)
-    add(0,0,0,30,1,30,C.g,'start'); [[-10,1,-10,3],[10,1,10,3],[-10,2,10,3],[10,2,-10,3],[0,3,0,3]].forEach((b,i)=>{ add(b[0],b[1],b[2],b[3],1,b[3],[C.b,C.p,C.t,C.r,C.o][i]); coin(b[0],b[2],b[1]); }); [[-5,0],[5,0],[0,-5],[0,5],[-13,0],[13,0],[0,-13],[0,13],[-6,6],[6,-6]].forEach(a=>coin(a[0],a[1],0)); for(let i=0;i<8;i++){ const a=i/8*6.28; decor.push({kind:'tree',x:Math.cos(a)*14,z:Math.sin(a)*14}); }
+    add(0,0,0,30,1,30,C.g,'start'); [[-10,1,-10,3],[10,1,10,3],[-10,2,10,3],[10,2,-10,3],[0,3,0,3]].forEach((b,i)=>{ add(b[0],b[1],b[2],b[3],1,b[3],[C.b,C.p,C.t,C.r,C.o][i]); coin(b[0],b[2],b[1]); if(b[1]>=2) stairs(b[0],b[2],b[3],b[1]+.5,[[0,-1],[0,1],[1,0],[-1,0],[0,-1]][i]); }); [[-5,0],[5,0],[0,-5],[0,5],[-13,0],[13,0],[0,-13],[0,13],[-6,6],[6,-6]].forEach(a=>coin(a[0],a[1],0)); for(let i=0;i<8;i++){ const a=i/8*6.28; decor.push({kind:'tree',x:Math.cos(a)*14,z:Math.sin(a)*14}); }
   } else if(id==='c3'){ // Level 3 — Traffic Dash (cross 4 roads)
     add(0,0,0,70,1,60,0x86EFAC,'start'); spawn={x:0,y:.6,z:-26,yaw:0};
     [-14,-4,6,16].forEach((z,i)=>{ add(0,.05,z,70,.1,6,0x475569,'deco'); const dir=i%2?-1:1; for(let k=0;k<3;k++) cars.push({x:-30+k*22+(i*7),z:z+(i%2?1.2:-1.2),dir,speed:5+i*1.5+k*.4,c:[0xEF4444,0xFFD23F,0x3B82F6,0xF97316,0xA855F7][(i+k)%5],range:36}); });
@@ -81,6 +84,71 @@ export function level(id,data){
     add(0,0,0,44,1,44,0xFDE68A,'start'); [[-12,1.25,-12,4],[12,1.25,12,4],[-12,1.25,12,4],[12,1.25,-12,4]].forEach(b=>add(b[0],b[1],b[2],b[3],2.5,b[3],C.r)); monsters.push({x:0,z:14,hp:12,boss:true},{x:-16,z:-16,hp:2},{x:16,z:-16,hp:2}); [[-8,0],[8,0],[0,-8],[0,8],[-18,0],[18,0]].forEach(a=>coin(a[0],a[1],0)); [[-20,.2,-20],[20,.2,20]].forEach(a=>add(a[0],a[1],a[2],2.4,.4,2.4,0xFFD23F,'boost'));
   } else if(id==='c10'){ // Level 10 — Grand Finale (falling floor + sky race combo: long race with pads)
     add(0,0,0,8,1,10,C.g,'start'); const cols=[C.b,C.p,C.t,C.r,C.o]; let z=8,y=0; for(let i=0;i<30;i++){ const kind=i%7===6?'check':'plat'; const w=i%3===2?2.4:4; add((i%4===1?2:i%4===3?-2:0),y,z,w,1,5,kind==='check'?C.g:cols[i%5],kind); if(i%4===0) add((i%4===1?2:i%4===3?-2:0),y+.55,z,2,.1,2,0xFFD23F,'boost'); if(i%6===5){ add(0,y+.55,z+1.5,2.2,.1,2.2,0x2EE6D6,'bounce'); y+=3.5; z+=11; } else { z+=7.5; y+= i%2?1.2:0; } if(i%2===0) coin(0,z-3,y); } add(0,y,z+3,12,1,12,C.y,'finish');
+  } else if(id==='soccer'||id==='blast'){ // soccer pitch 44x26, goals on ±x
+    add(0,0,0,56,1,38,id==='blast'?0x6EE7B7:0x4ADE80,'start'); spawn={x:-6,y:.6,z:0,yaw:Math.PI/2};
+    add(0,.52,0,44,.06,.3,C.w,'deco'); add(0,.52,0,.3,.06,26,C.w,'deco'); add(-22,.52,0,.3,.06,26,C.w,'deco'); add(22,.52,0,.3,.06,26,C.w,'deco'); add(0,.52,13,44,.06,.3,C.w,'deco'); add(0,.52,-13,44,.06,.3,C.w,'deco');
+    // side walls (ball + players), goal mouths left open at |z|<3.5
+    add(0,1.25,14.2,48,2.5,1,0xA78BFA,'wall'); add(0,1.25,-14.2,48,2.5,1,0xA78BFA,'wall');
+    [-1,1].forEach(sg=>{ add(sg*23.2,1.25,8.75,1,2.5,9.5,0xA78BFA,'wall'); add(sg*23.2,1.25,-8.75,1,2.5,9.5,0xA78BFA,'wall'); add(sg*24.6,1.5,0,.3,3,7.6,C.w,'wall'); add(sg*23.8,1.5,3.6,2,3,.3,C.w,'wall'); add(sg*23.8,1.5,-3.6,2,3,.3,C.w,'wall'); add(sg*23.8,3.05,0,2,.2,7.6,C.w,'deco'); });
+    if(id==='blast') [[-10,8],[10,-8],[-10,-8],[10,8],[0,0]].forEach(a=>add(a[0],.52,a[1],2.6,.08,2.6,0xFF4D1F,'deco'));
+    decor.push({kind:'sign',x:0,z:-16,y:5,text:id==='blast'?'💥 BLAST SOCCER':'⚽ CRAZY SOCCER'});
+  } else if(id==='mystery'){ // mansion garden: walls + rooms to hide
+    add(0,0,0,56,1,56,0x86EFAC,'start'); spawn={x:0,y:.6,z:-20,yaw:0};
+    const walls=[[-14,-10,10,1.2],[14,-10,10,1.2],[-14,10,10,1.2],[14,10,10,1.2],[0,0,1.2,12],[-20,0,1.2,14],[20,0,1.2,14],[0,-20,14,1.2],[0,20,14,1.2],[-8,0,6,1.2],[8,0,6,1.2]];
+    walls.forEach((w,i)=>add(w[0],1.5,w[1],w[2],3,w[3],[0xA78BFA,0xFF5DA2,0x3B82F6,0xFF8A3D][i%4],'plat'));
+    [[-24,-24],[24,-24],[24,24],[-24,24],[0,-14],[0,14],[-14,0],[14,0]].forEach(a=>coin(a[0],a[1],0));
+    for(let i=0;i<10;i++){ const a=i/10*Math.PI*2; decor.push({kind:'tree',x:Math.cos(a)*26,z:Math.sin(a)*26}); }
+  } else if(id==='evade'){ // city blocks to run around
+    add(0,0,0,80,1,80,0x94A3B8,'start'); spawn={x:0,y:.6,z:-30,yaw:0};
+    const bl=[[-20,-20,8,8,4],[20,-20,6,10,6],[-20,20,10,6,5],[20,20,8,8,7],[0,0,10,10,5],[-30,0,4,12,3],[30,0,4,12,3],[0,-30,12,4,3],[0,30,12,4,3],[-10,-8,3,3,1],[10,8,3,3,1],[12,-10,3,3,2],[-12,10,3,3,2]];
+    bl.forEach((b,i)=>{ add(b[0],b[4]/2,b[1],b[2],b[4],b[3],[0xF87171,0xFBBF24,0x60A5FA,0xA78BFA,0x34D399][i%5],'plat'); if(b[4]<=2) coin(b[0],b[1],b[4]); });
+    [[-10,-30],[10,-30],[-30,-10],[30,10],[-10,30],[10,30],[-30,30],[30,-30],[-14,-14],[14,14],[14,-14],[-14,14]].forEach(a=>coin(a[0],a[1],0));
+    [[-36,.2,-36],[36,.2,36],[36,.2,-36],[-36,.2,36]].forEach(a=>add(a[0],a[1],a[2],2.4,.4,2.4,0xFFD23F,'boost'));
+  } else if(id==='fisch'){ // shore + pier over a lake
+    add(0,0,-14,36,1,16,0xFDE68A,'start'); add(0,0,4,4,1,24,0x92400E,'plat'); add(0,0,17,8,1,4,0x92400E,'plat'); spawn={x:0,y:.6,z:-8,yaw:0};
+    add(0,-.5,30,400,.4,400,0x38BDF8,'deco'); [[-6,-10],[6,-10],[-12,-14],[12,-14]].forEach(a=>coin(a[0],a[1],0));
+    for(let i=0;i<6;i++) decor.push({kind:'palm',x:-15+i*6,z:-20});
+    decor.push({kind:'sign',x:0,z:17,y:4.5,text:'🎣 FISHING DOCK'});
+  } else if(id==='fruits'){ // three islands joined by bridges
+    add(0,0,0,24,1,24,0xFDE68A,'start'); spawn={x:0,y:.6,z:-8,yaw:0};
+    add(0,0,20,3,1,16,0x92400E,'plat'); add(0,0,40,30,1,24,0x86EFAC,'plat'); add(20,0,40,12,1,3,0x92400E,'plat'); add(40,0,40,34,1,34,0xFCA5A5,'plat');
+    [[-6,0,40,3],[6,0,40,3],[30,0,30,4],[50,0,50,4],[40,0,28,3]].forEach((b,i)=>add(b[0],1.25,b[2],b[3],2.5,b[3],C.p));
+    monsters.push({x:-10,z:36,hp:3},{x:10,z:46,hp:3},{x:0,z:48,hp:4},{x:32,z:48,hp:4},{x:48,z:32,hp:5},{x:50,z:48,hp:5},{x:40,z:40,hp:14,boss:true});
+    [[-8,-8],[8,-8],[0,20],[-10,44],[10,34],[20,40],[34,34],[46,46],[46,34],[34,46]].forEach(a=>coin(a[0],a[1],0));
+    for(let i=0;i<6;i++) decor.push({kind:'palm',x:-10+i*4,z:-11}); decor.push({kind:'sign',x:0,z:0,y:5,text:'🍎 PICK A FRUIT'});
+  } else if(id==='dress'){ // boutique + runway
+    add(0,0,0,50,1,40,0xFBCFE8,'start'); spawn={x:0,y:.6,z:-14,yaw:0};
+    add(0,.3,8,4,.6,24,0xF472B6,'plat'); add(0,.6,20,8,.6,4,0xFFD23F,'plat');
+    const stands=[[-20,-14],[-14,-14],[-8,-14],[8,-14],[14,-14],[20,-14],[-20,-6],[-14,-6],[-8,-6],[8,-6],[14,-6],[20,-6],[-20,2],[20,2],[-20,10],[20,10]];
+    stands.forEach((s,i)=>add(s[0],.4,s[1],1.8,.8,1.8,[0xA78BFA,0x2EE6D6,0xFFD23F][i%3],'plat'));
+    decor.push({kind:'sign',x:0,z:20,y:5,text:'👗 RUNWAY'});
+  } else if(id==='duels'){ // small floating arena
+    add(0,0,0,24,1,24,0xFCA5A5,'start'); spawn={x:-5,y:.6,z:0,yaw:Math.PI/2}; add(0,-2,0,26,3,26,0x7F1D1D,'deco'); add(0,.52,0,24,.06,.4,C.w,'deco');
+    decor.push({kind:'sign',x:0,z:-11,y:5,text:'🥊 DUELS'});
+  } else if(id==='rivals'){ // crates for cover
+    add(0,0,0,50,1,34,0x93C5FD,'start'); spawn={x:-18,y:.6,z:0,yaw:Math.PI/2};
+    [[-8,-6],[8,6],[-8,8],[8,-8],[0,0],[-14,-12],[14,12],[0,10],[0,-10],[-4,4],[4,-4]].forEach((b,i)=>add(b[0],1,b[1],2.4,2,2.4,[0xFBBF24,0xA16207,0xF59E0B][i%3],'plat'));
+    add(0,1.25,17.5,50,2.5,1,0x1E3A8A,'wall'); add(0,1.25,-17.5,50,2.5,1,0x1E3A8A,'wall'); add(25.5,1.25,0,1,2.5,36,0x1E3A8A,'wall'); add(-25.5,1.25,0,1,2.5,36,0x1E3A8A,'wall');
+    [[-18,-12],[18,12],[0,14],[0,-14]].forEach(a=>coin(a[0],a[1],0));
+  } else if(id==='eggs'){ // four biomes around a home garden
+    add(0,0,0,70,1,70,0x86EFAC,'start'); spawn={x:0,y:.6,z:-6,yaw:0};
+    add(0,.25,0,12,.5,12,0xFDE68A,'plat'); [[-6,0,.6,12],[6,0,.6,12],[0,-6,12,.6]].forEach(f=>add(f[0],1,f[1],f[2],1.2,f[3],0xA16207,'wall'));
+    add(-20,.08,-20,30,.16,30,0xBBF7D0,'deco'); add(20,.08,-20,30,.16,30,0x166534,'deco'); add(-20,.08,20,30,.16,30,0xE0F2FE,'deco'); add(20,.08,20,30,.16,30,0xFCA5A5,'deco');
+    for(let i=0;i<5;i++){ decor.push({kind:'tree',x:12+i*5,z:-32}); decor.push({kind:'tree',x:12+i*5,z:-8}); }
+    [[-30,-30],[-10,-30],[30,-30],[10,-30],[-30,30],[-10,30],[30,30],[10,30]].forEach(a=>coin(a[0],a[1],0));
+    decor.push({kind:'sign',x:0,z:0,y:4,text:'🏡 HOME GARDEN'});
+  } else if(id==='feed'){ // pen in the middle, animal zones in rings
+    add(0,0,0,90,1,90,0x86EFAC,'start'); spawn={x:0,y:.6,z:-8,yaw:0};
+    add(0,.25,0,14,.5,14,0xFDE68A,'plat'); [[-7,0,.6,14],[7,0,.6,14],[0,-7,14,.6],[-4,7,6,.6],[4,7,6,.6]].forEach(f=>add(f[0],1,f[1],f[2],1.2,f[3],0xA16207,'wall'));
+    add(0,.05,0,40,.1,40,0xBBF7D0,'deco'); add(0,.04,0,64,.08,64,0x86EFAC,'deco');
+    for(let i=0;i<14;i++){ const a=i/14*Math.PI*2; decor.push({kind:'tree',x:Math.cos(a)*40,z:Math.sin(a)*40}); }
+    decor.push({kind:'sign',x:0,z:0,y:4,text:'🐾 MY PEN'});
+  } else if(id==='huss'){ // long rectangular arena with end zones
+    add(0,0,0,70,1,30,0xFDE68A,'start'); spawn={x:-30,y:.6,z:0,yaw:Math.PI/2};
+    add(-30,.52,0,8,.06,28,0x4ADE80,'deco'); add(30,.52,0,8,.06,28,0x3B82F6,'deco');
+    [[-12,-8],[-12,8],[12,-8],[12,8],[0,0],[-4,-12],[4,12]].forEach((b,i)=>add(b[0],1,b[1],2.5,2,2.5,[0xA78BFA,0xFF5DA2,0xFF8A3D][i%3],'plat'));
+    add(0,1.25,15.5,70,2.5,1,0x475569,'wall'); add(0,1.25,-15.5,70,2.5,1,0x475569,'wall'); add(35.5,1.25,0,1,2.5,32,0x475569,'wall'); add(-35.5,1.25,0,1,2.5,32,0x475569,'wall');
+    decor.push({kind:'sign',x:0,z:-13,y:5,text:'🏃 HUSS VALLEY'});
   } else if(id==='custom'&&data){
     (data.blocks||[]).forEach(b=>add(b.x+.5,b.y+.5,b.z+.5,1,1,1,b.c||C.b,b.kind==='finish'?'finish':b.kind==='check'?'check':'plat'));
     (data.coins||[]).forEach(c=>coins.push({x:c.x+.5,y:c.y+1.5,z:c.z+.5}));

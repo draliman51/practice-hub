@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { SKIN, COLORS, HAIRC, EMOTES, WORLDS } from './catalog';
 import { level } from './levels';
 import { CAST, pickLine, MONSTER_LINES } from './npcs';
+import { makeMinigame } from './minigames';
 
 const SRGB = THREE.SRGBColorSpace;
 function faceTexture(emoji, bg) { const c = document.createElement('canvas'); c.width = c.height = 160; const g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, 160, 160); g.font = '112px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(emoji, 80, 88); const t = new THREE.CanvasTexture(c); t.colorSpace = SRGB; return t; }
@@ -96,7 +97,7 @@ export function createGame(o) {
   const scene = new THREE.Scene(); scene.background = skyC; scene.fog = new THREE.Fog(skyC, 60, 160);
   const camera = new THREE.PerspectiveCamera(60, 1, .1, 300);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x9ad0ff, .9)); const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.castShadow = !!SET.shadows; sun.shadow.mapSize.set(1024, 1024); const sc = sun.shadow.camera; sc.left = sc.bottom = -30; sc.right = sc.top = 30; sc.far = 120; scene.add(sun); scene.add(sun.target);
-  const isPark = o.world === 'park' || o.world === 'city';
+  const isPark = o.world === 'park' || o.world === 'city' || !!W.water;
   const lava = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshBasicMaterial({ color: isPark ? 0x2563EB : 0xFF4D1F })); lava.rotation.x = -Math.PI / 2; lava.position.y = -6; scene.add(lava);
   const lava2 = new THREE.Mesh(new THREE.PlaneGeometry(600, 600, 60, 60), new THREE.MeshBasicMaterial({ color: isPark ? 0x93C5FD : 0xFFB020, wireframe: true, transparent: true, opacity: .3 })); lava2.rotation.x = -Math.PI / 2; lava2.position.y = -5.9; scene.add(lava2);
   for (let i = 0; i < 14; i++) { const c = new THREE.Group(); const m = new THREE.MeshLambertMaterial({ color: 0xffffff }); for (let k = 0; k < 3; k++) { const b = new THREE.Mesh(new THREE.BoxGeometry(3 + Math.random() * 3, 1.2, 2 + Math.random() * 2), m); b.position.set(k * 2.2 - 2, Math.random() * .6, Math.random() * 1.5); c.add(b); } c.position.set((Math.random() - .5) * 140, (o.world === 'tower' ? 8 : 18) + Math.random() * 25, Math.random() * 160 - 40); scene.add(c); }
@@ -129,11 +130,11 @@ export function createGame(o) {
   const coinGeo = new THREE.CylinderGeometry(.45, .45, .12, 20), coinMat = new THREE.MeshLambertMaterial({ color: 0xFFD23F, emissive: 0x8a6a00 });
   const coins = LV.coins.map(c => { const m = new THREE.Mesh(coinGeo, coinMat); m.rotation.x = Math.PI / 2; m.position.set(c.x, c.y, c.z); m.castShadow = true; scene.add(m); return { m, x: c.x, y: c.y, z: c.z, got: false }; });
   // me + others
-  const ch = character(o.me); scene.add(ch); let myPet = null; if (o.me.avatar?.pet && o.me.avatar.pet !== 'none') { myPet = pet(o.me.avatar.pet); scene.add(myPet); }
+  let ch = character(o.me); scene.add(ch); const setChar = (c) => { c.position.copy(ch.position); c.rotation.y = ch.rotation.y; scene.remove(ch); ch = c; scene.add(ch); }; let myPet = null; if (o.me.avatar?.pet && o.me.avatar.pet !== 'none') { myPet = pet(o.me.avatar.pet); scene.add(myPet); }
   const remote = new Map(); const addRemote = (p) => { if (remote.has(p.id) || p.id === o.me.id) return; const c = character(p); c.position.set(LV.spawn.x, LV.spawn.y, LV.spawn.z); scene.add(c); let pt = null; if (p.avatar?.pet && p.avatar.pet !== 'none') { pt = pet(p.avatar.pet); scene.add(pt); } remote.set(p.id, { ch: c, pet: pt, tx: LV.spawn.x, ty: LV.spawn.y, tz: LV.spawn.z, r: 0, m: false, air: false }); };
   (o.others || []).forEach(addRemote);
   const SP = LV.spawn;
-  const HW = .33, HT = 1.85, GRAV = 30, JUMP = 11.5, SPEED0 = 6.2, SENS = SET.sens * .001 * (SET.invert ? -1 : 1);
+  const HW = .33, HT = 1.85, GRAV = 30, JUMP = 12.4, STEP = 1.08, SPEED0 = 6.2, SENS = SET.sens * .001 * (SET.invert ? -1 : 1);
   // ---- AI companions ----
   const lang = o.lang || 'en'; const npcs = []; const racers = []; const monsters = []; let robotPath = null, robotLen = 0;
   const mkPath = () => { robotPath = solids.filter(p => p.kind !== 'wall').map(p => new THREE.Vector3(p.x, p.y + p.h / 2, p.z)); robotLen = 0; for (let i = 1; i < robotPath.length; i++) robotLen += robotPath[i].distanceTo(robotPath[i - 1]); };
@@ -167,20 +168,25 @@ export function createGame(o) {
   const pu = e => { ptrs.delete(e.pointerId); if (joy && e.pointerId === joy.id) { joy = null; inp.jx = inp.jy = 0; joyEl.hidden = true; } if (look && e.pointerId === look.id) look = null; if (ptrs.size < 2) pinch = null; };
   host.addEventListener('pointerdown', pd); host.addEventListener('pointermove', pm); host.addEventListener('pointerup', pu); host.addEventListener('pointercancel', pu);
   const jb = host.querySelector('#alx-jump'); const jd = e => { e.preventDefault(); inp.jump = true; }; jb.addEventListener('pointerdown', jd); jb.addEventListener('contextmenu', e => e.preventDefault());
-  const hud = (k, v) => { const el = host.querySelector('#alx-' + k); if (el) el.textContent = v; };
+  const hud = (k, v) => { const el = host.querySelector('#alx-' + k); if (el) { el.textContent = v; if (k === 'mg') el.hidden = false; } };
   function respawn() { if (o.world === 'arena') { S.alive = false; finish(false); return; } S.pos.copy(S.cp); S.vel.set(0, 0, 0); S.deaths++; const d = host.querySelector('#alx-deaths'); if (d) { d.hidden = false; d.querySelector('b').textContent = S.deaths; } sfx('bad'); msg(isPark ? 'Splash! 🌊' : 'Oops! Back to the checkpoint 🔁', 1400); }
   const moveBody = (B, vx, vz, dt) => { // shared AABB physics for the player and AI bodies
     if (B.ground && B.ground.mv && B.onGround) { B.pos.x += B.ground.dx; B.pos.z += B.ground.dz; }
     B.vel.y -= GRAV * dt; if (B.vel.y < -40) B.vel.y = -40;
-    B.pos.x += vx * dt; solids.forEach(p => { if (overlap(p, B.pos.x, B.pos.y, B.pos.z)) B.pos.x = vx > 0 || (vx === 0 && B.pos.x < p.cx) ? p.cx - p.w / 2 - HW - .001 : p.cx + p.w / 2 + HW + .001; });
-    B.pos.z += vz * dt; solids.forEach(p => { if (overlap(p, B.pos.x, B.pos.y, B.pos.z)) B.pos.z = vz > 0 || (vz === 0 && B.pos.z < p.cz) ? p.cz - p.d / 2 - HW - .001 : p.cz + p.d / 2 + HW + .001; });
+    const wasGround = B.onGround; // Roblox-style auto step: walk up ledges lower than STEP without jumping
+    const stepUp = (p) => { const top = p.y + p.h / 2; if (!wasGround || top <= B.pos.y || top - B.pos.y > STEP) return false; if (solids.some(q => overlap(q, B.pos.x, top + .002, B.pos.z))) return false; B.pos.y = top + .002; B.vel.y = 0; return true; };
+    B.pos.x += vx * dt; solids.forEach(p => { if (overlap(p, B.pos.x, B.pos.y, B.pos.z) && !stepUp(p)) B.pos.x = vx > 0 || (vx === 0 && B.pos.x < p.cx) ? p.cx - p.w / 2 - HW - .001 : p.cx + p.w / 2 + HW + .001; });
+    B.pos.z += vz * dt; solids.forEach(p => { if (overlap(p, B.pos.x, B.pos.y, B.pos.z) && !stepUp(p)) B.pos.z = vz > 0 || (vz === 0 && B.pos.z < p.cz) ? p.cz - p.d / 2 - HW - .001 : p.cz + p.d / 2 + HW + .001; });
     B.pos.y += B.vel.y * dt; B.onGround = false; solids.forEach(p => { if (overlap(p, B.pos.x, B.pos.y, B.pos.z)) { if (B.vel.y <= 0 && B.pos.y > p.y - p.h / 2) { B.pos.y = p.y + p.h / 2; B.vel.y = 0; B.onGround = true; B.ground = p; } else if (B.vel.y > 0) { B.pos.y = p.y - p.h / 2 - HT - .001; B.vel.y = 0; } } });
     pads.forEach(p => { if (Math.abs(B.pos.x - p.cx) < p.w / 2 && Math.abs(B.pos.z - p.cz) < p.d / 2 && B.pos.y < p.y + p.h / 2 + .6 && B.pos.y > p.y - 1) { if (p.kind === 'bounce' && B.vel.y <= 0) { B.vel.y = 19; B.onGround = false; if (B === S) { sfx('ok'); msg('Boing! ⬆️', 700); } } if (p.kind === 'boost' && (B.boostT || 0) <= 0) { B.boostT = 2.2; if (B === S) { sfx('ok'); msg('Speed boost! ⚡', 900); } } } }); };
   const groundAhead = (B, dx, dz) => { const px = B.pos.x + dx, pz = B.pos.z + dz; return solids.some(p => px > p.cx - p.w / 2 && px < p.cx + p.w / 2 && pz > p.cz - p.d / 2 && pz < p.cz + p.d / 2 && Math.abs(p.y + p.h / 2 - B.pos.y) < 1.2); };
   const overlap = (p, px, py, pz) => !p.gone && px + HW > p.cx - p.w / 2 && px - HW < p.cx + p.w / 2 && py < p.y + p.h / 2 && py + HT > p.y - p.h / 2 && pz + HW > p.cz - p.d / 2 && pz - HW < p.cz + p.d / 2;
+  const hitMonster = (mo, dmg, kx, kz) => { if (mo.hp <= 0) return; mo.hp -= dmg; mo.flash = .25; if (kx || kz) mo.kb = { x: kx, z: kz, t: .35 }; sfx('ok'); msg(mo.boss ? `👊 Boss ${Math.max(0, mo.hp)}/${mo.maxHp}` : '👊 Pow!', 600); if (mo.hp <= 0) { S.kills++; S.coins += 2; hud('coins', S.coins); mo.m.visible = false; sfx('win'); msg('Monster defeated! 👹💫', 1200); } };
+  const mg = makeMinigame(o.world, { scene, S, o, W, LV, solids, coins, monsters, moveBody, moveOnGround, overlap, groundAhead, character, pet, monster, label, animate, emoteOn, bubbleOn, bubbleTick, msg, hud, sfx, finish: (f) => finish(f), CAST, pickLine, lang, HW, HT, JUMP, SPEED0, M, getCh: () => ch, setChar, hitMonster, me: o.me });
   let netTick = 0, lastPortal = null;
   function finish(finished) { if (S.done) return; S.done = true; const run = { world: o.world, mode: o.mode, score: 0, coins: S.coins, time: Math.floor(S.t), deaths: S.deaths, finished, beatRobot: o.mode === 'cpu' && finished && S.rank === 0, rank: o.mode === 'cpu' ? S.rank + 1 : 0, chests: S.chests, coinsTotal: coins.length + chests.length * 3 + (W.fight ? (LV.monsters || []).length * 2 : 0) };
-    let sc = S.coins * 10 - S.deaths * 5; if (o.world === 'arena' || o.world === 'tag') sc = Math.floor(S.t) * 2 + (finished ? 30 : 0); else if (o.world === 'treasure') sc = S.chests * 25 + S.coins * 5 + (finished ? Math.floor(S.left) * 2 : 0); else if (W.fight) sc = S.kills * 20 + S.coins * 5 + (finished ? 40 + S.lives * 15 : 0); else if (W.runner) sc = Math.floor(S.ran) + S.coins * 5 + (finished ? 40 + S.lives * 10 : 0); else if (finished) sc += W.timed ? (50 + Math.floor(S.left) * 2) : (50 + Math.max(0, (o.world === 'tower' ? 200 : 150) - Math.floor(S.t))); if (run.beatRobot) sc += 30; else if (o.mode === 'cpu' && finished) sc += Math.max(0, 20 - S.rank * 7); run.score = Math.max(0, sc); run.kills = S.kills;
+    if (mg && mg.result) Object.assign(run, mg.result(finished));
+    let sc = S.coins * 10 - S.deaths * 5; if (mg && mg.score) sc = mg.score(finished) + S.coins * 5; else if (o.world === 'arena' || o.world === 'tag') sc = Math.floor(S.t) * 2 + (finished ? 30 : 0); else if (o.world === 'treasure') sc = S.chests * 25 + S.coins * 5 + (finished ? Math.floor(S.left) * 2 : 0); else if (W.fight) sc = S.kills * 20 + S.coins * 5 + (finished ? 40 + S.lives * 15 : 0); else if (W.runner) sc = Math.floor(S.ran) + S.coins * 5 + (finished ? 40 + S.lives * 10 : 0); else if (finished) sc += W.timed ? (50 + Math.floor(S.left) * 2) : (50 + Math.max(0, (o.world === 'tower' ? 200 : 150) - Math.floor(S.t))); if (run.beatRobot) sc += 30; else if (o.mode === 'cpu' && finished) sc += Math.max(0, 20 - S.rank * 7); run.score = Math.max(0, sc); run.kills = S.kills;
     if (finished) sfx('win'); on.finish && on.finish(run); }
   function step(dt) {
     const now = S.t; solids.forEach(p => { if (!p.mv) return; const off = Math.sin(now * p.mv.speed) * p.mv.range; const nx = p.mv.axis === 'x' ? p.bx + off : p.bx, nz = p.mv.axis === 'z' ? p.bz + off : p.bz; p.dx = nx - p.cx; p.dz = nz - p.cz; p.cx = nx; p.cz = nz; p.mesh.position.set(nx, p.y, nz); });
@@ -188,24 +194,27 @@ export function createGame(o) {
     if (RUNNER) { mz = 1; S.lane = Math.max(-1, Math.min(1, S.lane + (mx > .5 && S.laneCd <= 0 ? 1 : mx < -.5 && S.laneCd <= 0 ? -1 : 0))); if (Math.abs(mx) > .5 && S.laneCd <= 0) S.laneCd = .35; S.laneCd = Math.max(0, S.laneCd - dt); mx = Math.max(-1, Math.min(1, (S.lane * 3 - S.pos.x) * 1.5)); S.yaw = 0; }
     const len = Math.hypot(mx, mz); if (len > 1) { mx /= len; mz /= len; }
     const fx = Math.sin(S.yaw), fz = Math.cos(S.yaw), rx = -Math.cos(S.yaw), rz = Math.sin(S.yaw);
-    const SPEED = SPEED0 * (S.boostT > 0 ? 1.8 : 1); S.boostT = Math.max(0, S.boostT - dt); const vx = (fx * mz + rx * mx) * SPEED, vz = (fz * mz + rz * mx) * SPEED; const moving = len > .05;
+    const SPEED = SPEED0 * (S.boostT > 0 ? 1.8 : 1) * (S.speedMul || 1); S.boostT = Math.max(0, S.boostT - dt); let vx = (fx * mz + rx * mx) * SPEED, vz = (fz * mz + rz * mx) * SPEED; let moving = len > .05;
+    if (mg && mg.move) { const r = mg.move({ mx, mz, fx, fz, rx, rz, vx, vz, dt, len }); if (r) { vx = r.vx; vz = r.vz; moving = Math.hypot(vx, vz) > .3; } }
     if (moving && !S.started) S.started = true;
     if (inp.jump) { S.jumpBuf = .15; inp.jump = false; }
     S.coyote = S.onGround ? .1 : Math.max(0, S.coyote - dt); S.jumpBuf = Math.max(0, S.jumpBuf - dt);
+    if (mg && mg.noJump && mg.noJump()) S.jumpBuf = 0;
     if (S.jumpBuf > 0 && S.coyote > 0) { S.vel.y = JUMP; S.onGround = false; S.coyote = 0; S.jumpBuf = 0; S.ground = null; sfx('tap'); S.started = true; ch.userData.emote = null; }
     moveBody(S, vx, vz, dt);
     if (S.onGround && S.ground) { const p = S.ground; if (p.kind === 'check' && !p.hit) { p.hit = true; S.cp.set(p.x, p.y + p.h / 2, p.z); p.flag.material.color.set(0xFFD23F); sfx('ok'); msg('Checkpoint! 🚩', 1200); } if (p.kind === 'finish' && !S.done) { finish(true); return; } }
-    if (S.pos.y < -4) respawn();
+    if (S.pos.y < -4) { if (mg && mg.fell) mg.fell(); else respawn(); }
     coins.forEach(c => { if (c.got) return; c.m.rotation.z += dt * 3; if (Math.abs(c.x - S.pos.x) < 1 && Math.abs(c.z - S.pos.z) < 1 && S.pos.y + HT > c.y - .6 && S.pos.y < c.y + .6) { c.got = true; c.m.visible = false; S.coins++; hud('coins', S.coins); sfx('ok'); if (o.world === 'park' && S.coins === coins.length) finish(true); } });
     chests.forEach(c => { if (c.gone) return; c.lid.rotation.z = Math.sin(S.t * 3) * .05; if (Math.abs(c.x - S.pos.x) < 1.3 && Math.abs(c.z - S.pos.z) < 1.3 && Math.abs(S.pos.y - c.y) < 2.2) { c.gone = true; c.mesh.visible = false; c.lid.visible = false; c.lb.visible = false; S.chests++; S.coins += 3; hud('coins', S.coins); hud('chests', S.chests + '/' + chests.length); sfx('win'); msg('Treasure! 💰 +3', 1000); if (S.chests === chests.length) finish(true); } });
+    if (mg) { mg.update(dt, { moving, vx, vz, fx, fz }); if (S.done) return; }
     sharks.forEach(g => { const k = g.userData.shark; k.a += dt * .4; g.position.set(Math.cos(k.a) * k.r, -5.2, Math.sin(k.a) * k.r); g.rotation.y = -k.a; });
     if (monsters.length && !S.done) { S.inv = Math.max(0, S.inv - dt); S.punchT = Math.max(0, S.punchT - dt);
       monsters.forEach((mo, mi) => { if (mo.hp <= 0) return; mo.cool -= dt; if (mo.cool <= 0) { mo.sprint = 1.2; mo.cool = 5 + Math.random() * 4; } mo.sprint = Math.max(0, mo.sprint - dt); const sp = (mo.sprint > 0 ? 7 : (mo.speed || 4.3)) * (mo.boss ? .9 : 1);
-        if (mo.kb) { mo.m.position.x += mo.kb.x * dt; mo.m.position.z += mo.kb.z * dt; mo.kb.t -= dt; if (mo.kb.t <= 0) mo.kb = null; } else moveOnGround(mo.m, S.pos.x, S.pos.z, sp, dt);
-        mo.m.position.y = .5 + Math.abs(Math.sin(S.t * 10 + mi)) * .15; mo.flash = Math.max(0, mo.flash - dt); mo.m.children[0].material.color.setHex(mo.flash > 0 ? 0xffffff : (mo.boss ? 0xDC2626 : 0x7C3AED));
+        mo.frozen = Math.max(0, (mo.frozen || 0) - dt); if (mo.kb) { mo.m.position.x += mo.kb.x * dt; mo.m.position.z += mo.kb.z * dt; mo.kb.t -= dt; if (mo.kb.t <= 0) mo.kb = null; } else if (mo.frozen <= 0) moveOnGround(mo.m, S.pos.x, S.pos.z, sp, dt);
+        mo.m.position.y = .5 + Math.abs(Math.sin(S.t * 10 + mi)) * .15; mo.flash = Math.max(0, mo.flash - dt); mo.m.children[0].material.color.setHex(mo.flash > 0 ? 0xffffff : mo.frozen > 0 ? 0x93C5FD : (mo.boss ? 0xDC2626 : 0x7C3AED));
         mo.lineT -= dt; if (mo.lineT <= 0) { mo.lineT = 8 + Math.random() * 6; bubbleOn(mo.m, MONSTER_LINES[lang === 'ar' ? 'ar' : 'en'][Math.floor(Math.random() * 3)]); } bubbleTick(mo.m, dt);
         const dm = Math.hypot(mo.m.position.x - S.pos.x, mo.m.position.z - S.pos.z); const reach = mo.boss ? 2.6 : 1.3;
-        if (dm < reach && S.pos.y < 2.5 + (mo.boss ? 2 : 0) && S.inv <= 0) { if (!FIGHT) { S.caught = true; sfx('bad'); msg('Caught! 👹', 2000); finish(false); } else { S.lives--; S.inv = 1.2; sfx('bad'); hud('lives', '❤️'.repeat(Math.max(0, S.lives))); msg('Ouch! 💥', 800); mo.kb = { x: (mo.m.position.x - S.pos.x) / Math.max(.1, dm) * 6, z: (mo.m.position.z - S.pos.z) / Math.max(.1, dm) * 6, t: .4 }; if (S.lives <= 0) { msg('Game over 👹', 2000); finish(false); } } } });
+        if (dm < reach && mo.frozen <= 0 && S.pos.y < 2.5 + (mo.boss ? 2 : 0) && S.inv <= 0) { if (!FIGHT) { S.caught = true; sfx('bad'); msg('Caught! 👹', 2000); finish(false); } else { S.lives--; S.inv = 1.2; sfx('bad'); hud('lives', '❤️'.repeat(Math.max(0, S.lives))); msg('Ouch! 💥', 800); mo.kb = { x: (mo.m.position.x - S.pos.x) / Math.max(.1, dm) * 6, z: (mo.m.position.z - S.pos.z) / Math.max(.1, dm) * 6, t: .4 }; if (S.lives <= 0) { msg('Game over 👹', 2000); finish(false); } } } });
       if (!FIGHT && S.t >= W.survive) finish(true); if (FIGHT && monsters.every(m => m.hp <= 0)) finish(true); }
     if (cars.length) { cars.forEach(c => { c.g.position.x += c.dir * c.speed * dt; if (c.g.position.x > c.range) c.g.position.x = -c.range; if (c.g.position.x < -c.range) c.g.position.x = c.range; if (S.inv <= 0 && Math.abs(c.g.position.x - S.pos.x) < 1.9 && Math.abs(c.z - S.pos.z) < 1.3 && S.pos.y < c.g.position.y + 1.5) { S.inv = 1.5; sfx('bad'); msg('Beep beep! 🚗 Back to the checkpoint', 1400); S.deaths++; S.pos.copy(S.cp); S.vel.set(0, 0, 0); } }); S.inv = Math.max(0, S.inv - dt); }
     if (RUNNER) { S.ran = Math.max(S.ran, S.pos.z); hud('time', Math.floor(S.ran) + 'm'); S.inv = Math.max(0, S.inv - dt); obst.forEach(ob => { if (!ob.hit && S.inv <= 0 && Math.abs(ob.x - S.pos.x) < 1.2 && Math.abs(ob.z - S.pos.z) < 1 && S.pos.y < 2) { ob.hit = true; ob.m.material = M(0x991B1B); S.lives--; S.inv = 1; sfx('bad'); hud('lives', '❤️'.repeat(Math.max(0, S.lives))); msg('Crash! 💥', 800); if (S.lives <= 0) { msg('Game over 💥', 2000); finish(false); } } }); }
@@ -216,7 +225,7 @@ export function createGame(o) {
     if (o.mode === 'online') { netTick += dt; if (netTick > .08) { netTick = 0; on.net && on.net({ t: 's', p: o.me.id, x: +S.pos.x.toFixed(2), y: +S.pos.y.toFixed(2), z: +S.pos.z.toFixed(2), r: +ch.rotation.y.toFixed(2), m: moving && S.onGround ? 1 : 0, a: S.onGround ? 0 : 1 }); } }
     remote.forEach(R => { const k = Math.min(1, dt * 10); R.ch.position.x += (R.tx - R.ch.position.x) * k; R.ch.position.y += (R.ty - R.ch.position.y) * k; R.ch.position.z += (R.tz - R.ch.position.z) * k; let diff = ((R.r - R.ch.rotation.y + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; if (R.ch.userData.emote !== 'spin') R.ch.rotation.y += diff * k; animate(R.ch, R.m, dt, false); if (R.air && !R.ch.userData.emote) { R.ch.userData.armL.rotation.z = 2.8; R.ch.userData.armR.rotation.z = -2.8; } bubbleTick(R.ch, dt);
       if (R.pet) { R.pet.position.x += (R.ch.position.x - 1.2 - R.pet.position.x) * Math.min(1, dt * 4); R.pet.position.z += (R.ch.position.z - 1 - R.pet.position.z) * Math.min(1, dt * 4); R.pet.position.y += (R.ch.position.y - R.pet.position.y) * Math.min(1, dt * 6); } });
-    if (S.started && !S.done) { S.t += dt; if (W.timed) { S.left = Math.max(0, W.timed - S.t); hud('time', Math.ceil(S.left)); if (S.left <= 0) { finish(false); return; } } else if (o.world !== 'arena') hud('time', Math.floor(S.t)); }
+    if (S.started && !S.done) { S.t += dt; if (W.timed) { S.left = Math.max(0, W.timed - S.t); hud('time', Math.ceil(S.left)); if (S.left <= 0) { finish(mg && mg.timeUp ? !!mg.timeUp() : false); return; } } else if (o.world !== 'arena') hud('time', Math.floor(S.t)); }
     racers.forEach((r) => { const B = r.B; if (r.done || !S.started) { r.ch.position.copy(B.pos); animate(r.ch, false, dt, r.done); bubbleTick(r.ch, dt); return; }
       if (r.fallT > 0) { r.fallT -= dt; if (r.fallT <= 0) { const w = robotPath[r.cp]; B.pos.set(w.x, w.y + .1, w.z); B.vel.set(0, 0, 0); } r.ch.position.copy(B.pos); return; }
       const tgt = robotPath[Math.min(r.idx, robotPath.length - 1)]; const dx = tgt.x - B.pos.x, dz = tgt.z - B.pos.z, d = Math.hypot(dx, dz);
@@ -251,12 +260,13 @@ export function createGame(o) {
     emote(id) { emoteOn(ch, id); on.net && on.net({ t: 'emote', p: o.me.id, id }); },
     bubble(text) { bubbleOn(ch, text); on.net && on.net({ t: 'chat', p: o.me.id, text }); },
     end() { finish(false); },
+    action(phase) { if (mg && mg.action && !S.done) mg.action(phase || 'down'); },
     punch() { if (!FIGHT || S.punchT > 0 || S.done) return; S.punchT = .45; emoteOn(ch, 'wave'); ch.userData.emoteT = 1.9; sfx('tap'); const fx = Math.sin(ch.rotation.y), fz = Math.cos(ch.rotation.y);
-      monsters.forEach(mo => { if (mo.hp <= 0) return; const dx = mo.m.position.x - S.pos.x, dz = mo.m.position.z - S.pos.z, d = Math.hypot(dx, dz); if (d < (mo.boss ? 3.4 : 2.4) && (dx * fx + dz * fz) / Math.max(.1, d) > .2) { mo.hp--; mo.flash = .25; mo.kb = { x: dx / d * 9, z: dz / d * 9, t: .35 }; sfx('ok'); msg(mo.boss ? `👊 Boss ${mo.hp}/${mo.maxHp}` : '👊 Pow!', 600); if (mo.hp <= 0) { S.kills++; S.coins += 2; hud('coins', S.coins); mo.m.visible = false; sfx('win'); msg('Monster defeated! 👹💫', 1200); } } }); },
+      monsters.forEach(mo => { if (mo.hp <= 0) return; const dx = mo.m.position.x - S.pos.x, dz = mo.m.position.z - S.pos.z, d = Math.hypot(dx, dz); if (d < (mo.boss ? 3.4 : 2.4) && (dx * fx + dz * fz) / Math.max(.1, d) > .2) hitMonster(mo, 1, dx / d * 9, dz / d * 9); }); },
     addPlayer(p) { addRemote(p); },
     removePlayer(id) { const R = remote.get(id); if (R) { scene.remove(R.ch); if (R.pet) scene.remove(R.pet); remote.delete(id); } },
     handleNet(m) { const R = remote.get(m.p); if (m.t === 's' && R) { R.tx = m.x; R.ty = m.y; R.tz = m.z; R.r = m.r; R.m = !!m.m; R.air = !!m.a; } else if (m.t === 'emote' && R) emoteOn(R.ch, m.id); else if (m.t === 'chat' && R) bubbleOn(R.ch, m.text); },
     msg };
-  msg(o.world === 'park' ? 'Grab all the coins! 🪙' : o.world === 'tower' ? 'Climb to the top! 🗼' : o.world === 'arena' ? 'Keep moving! The floor is falling 🟥' : o.world === 'city' ? (o.names?.welcome || 'Welcome!') : o.world === 'tag' ? 'RUN! The monsters are coming 👹' : o.world === 'treasure' ? 'Find all 8 treasure chests! 💰' : o.world === 'skyrace' ? 'Use the ⚡ boosts and ⬆️ bounce pads!' : W.fight ? 'Punch the monsters! 👊 (button on the right)' : W.runner ? 'Dodge the obstacles! ⬅️➡️ switch lanes' : LV.cars && LV.cars.length ? 'Cross the roads — watch the cars! 🚗' : 'Run to the portal! 🌀', 2000);
+  msg(mg && mg.intro ? mg.intro : o.world === 'park' ? 'Grab all the coins! 🪙' : o.world === 'tower' ? 'Climb to the top! 🗼' : o.world === 'arena' ? 'Keep moving! The floor is falling 🟥' : o.world === 'city' ? (o.names?.welcome || 'Welcome!') : o.world === 'tag' ? 'RUN! The monsters are coming 👹' : o.world === 'treasure' ? 'Find all 8 treasure chests! 💰' : o.world === 'skyrace' ? 'Use the ⚡ boosts and ⬆️ bounce pads!' : W.fight ? 'Punch the monsters! 👊 (button on the right)' : W.runner ? 'Dodge the obstacles! ⬅️➡️ switch lanes' : LV.cars && LV.cars.length ? 'Cross the roads — watch the cars! 🚗' : 'Run to the portal! 🌀', 2000);
   return api;
 }

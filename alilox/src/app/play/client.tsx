@@ -39,8 +39,12 @@ export default function HubClient({ profile, photoUrl, season, quests, qp, bestB
       <div id="adventure" className="grid gap-2">{CAMPAIGN.map((c, i) => { const W = WORLDS.find((w) => w.id === c.id) as any; const done = profile.worlds_done.includes(c.id); const unlocked = i === 0 || profile.worlds_done.includes(CAMPAIGN[i - 1].id) || profile.role !== 'child'; const stars = done ? 2 : 0;
         return <Link key={c.id} href={unlocked ? `/play/${c.id}` : '#'} className={`card flex items-center gap-3 py-3 ${unlocked ? '' : 'opacity-50 pointer-events-none'} ${done ? 'border-lime' : ''}`}><div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-2xl">{unlocked ? W?.ic : '🔒'}</div><div className="grow"><b>{i + 1}. {lang === 'ar' ? c.ar : c.en}</b> {done && '✅'}<div className="muted text-xs">{lang === 'ar' ? c.d_ar : c.d_en}</div></div><div className="text-sun text-sm">{done ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : unlocked ? '▶' : ''}</div></Link>; })}</div>
     </Section>
+    <Section title={'🎮 ' + (t as any)('gamesTitle')}>
+      <p className="muted -mt-2 mb-3 text-sm">{(t as any)('gamesSub')}</p>
+      <div className="grid gap-2 sm:grid-cols-2">{WORLDS.filter((w: any) => w.cat === 'games').map((w) => <Link key={w.id} href={`/play/${w.id}`} className={`card flex items-center gap-3 py-3 ${profile.worlds_done.includes(w.id) ? 'border-lime' : ''}`}><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-2xl">{w.ic}</div><div className="grow"><b>{worldName(w.id)}</b> {profile.worlds_done.includes(w.id) && '✅'}<div className="muted text-xs">{(t as any)(w.id + 'D')}</div></div><span className="btn-sun btn-sm">▶</span></Link>)}</div>
+    </Section>
     <Section title={'🌍 ' + t('worldsTitle')}>
-      <div className="grid gap-3">{WORLDS.filter((w) => !w.hub && !(w as any).hidden).map((w) => <div key={w.id} className="card">
+      <div className="grid gap-3">{WORLDS.filter((w) => !w.hub && !(w as any).hidden && !(w as any).cat).map((w) => <div key={w.id} className="card">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setPick(pick === w.id ? null : w.id)}><div className="text-4xl">{w.ic}</div><div className="grow"><b className="text-lg">{worldName(w.id)}</b> {profile.worlds_done.includes(w.id) && '✅'}<div className="muted text-sm">{(t as any)(w.id + 'D')}</div></div><span className="text-2xl">{pick === w.id ? '▾' : '▸'}</span></div>
         {pick === w.id && <div className="mt-3 flex flex-wrap gap-2 pop">
           <Link className="btn-mint btn-sm" href={w.mini ? '/play/race' : `/play/${w.id}`}>🧍 {t('justMe')}</Link>

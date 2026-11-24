@@ -36,6 +36,7 @@ export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others =
             if (mode === 'online' && room) { await supabase().from('room_members').update({ finished_at: new Date().toISOString(), score: run.score }).eq('room_code', room).eq('user_id', me.id); chanRef.current?.send({ type: 'broadcast', event: 'g', payload: { t: 'finish', p: me.id, name: me.display_name, score: run.score } }); setStandings((s) => { const ns = [...s.filter((x) => x.id !== me.id), { id: me.id, name: me.display_name, score: run.score }]; rank = ns.findIndex((x) => x.id === me.id) + 1; n = others.length + 1; return ns; }); }
             setResult({ run, reward, rank, n }); } } });
       gameRef.current = game; (window as any).__alx = game; setLoading(false);
+      const kd = (e: KeyboardEvent) => { if (e.repeat) return; const k = e.key.toLowerCase(); if (k === 'x' || k === 'enter') game.action('down'); if (k === 'z') game.punch?.(); }; const ku = (e: KeyboardEvent) => { const k = e.key.toLowerCase(); if (k === 'x' || k === 'enter') game.action('up'); }; window.addEventListener('keydown', kd); window.addEventListener('keyup', ku); (game as any).__keys = () => { window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
       if (mode === 'online' && room) {
         const ch = supabase().channel('room:' + room, { config: { broadcast: { self: false } } });
         ch.on('broadcast', { event: 'g' }, ({ payload: m }: any) => { if (m.t === 'finish') { setStandings((s) => s.some((x) => x.id === m.p) ? s : [...s, { id: m.p, name: m.name, score: m.score }]); game.msg(`🏁 ${m.name}`, 1500); } else if (m.t === 'leave') { game.removePlayer(m.p); } else game.handleNet(m); });
@@ -43,22 +44,22 @@ export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others =
         voiceJoin(room, me.id, (s: string) => { if (s === 'ready') voiceDial(others.map((o) => o.id)); }).catch(() => { });
       }
     })();
-    return () => { dead = true; chanRef.current?.send({ type: 'broadcast', event: 'g', payload: { t: 'leave', p: me.id } }); chanRef.current?.unsubscribe(); chanRef.current = null; gameRef.current?.stop(); gameRef.current = null; if (mode === 'online') voiceLeave(); };
+    return () => { dead = true; chanRef.current?.send({ type: 'broadcast', event: 'g', payload: { t: 'leave', p: me.id } }); chanRef.current?.unsubscribe(); chanRef.current = null; gameRef.current?.__keys?.(); gameRef.current?.stop(); gameRef.current = null; if (mode === 'online') voiceLeave(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [world, mode, room]);
 
   const toggleMic = async () => { try { const s = await voiceMic(others.map((o) => o.id)); setMic(s); toast(s === 'on' ? '🎤 ' + t('voice') : '🔇 ' + t('mute')); } catch (e: any) { toast(lang === 'ar' ? '🎤 الميكروفون غير متاح — اسمح به من إعدادات المتصفح' : '🎤 Microphone not available — allow it in the browser'); } };
-  const tnames = { ...Object.fromEntries(CAMPAIGN.map((c) => [c.id, (lang === 'ar' ? c.ar : c.en)])), obby: t('obby'), tower: t('tower'), park: t('park'), arena: t('arena'), city: t('city'), skyrace: t('skyrace'), treasure: t('treasure'), tag: t('tag') } as Record<string, string>;
+  const tnames = { ...Object.fromEntries(CAMPAIGN.map((c) => [c.id, (lang === 'ar' ? c.ar : c.en)])), obby: t('obby'), tower: t('tower'), park: t('park'), arena: t('arena'), city: t('city'), skyrace: t('skyrace'), treasure: t('treasure'), tag: t('tag'), ...Object.fromEntries(WORLDS.filter((w: any) => w.cat === 'games').map((w) => [w.id, (t as any)(w.id)])) } as Record<string, string>;
   const stars = result ? (() => { const r: any = result.run; const tot = r.coinsTotal || 0; if (r.finished && tot && r.coins >= tot) return 3; if (r.finished) return 2; if (tot && r.coins >= tot / 2) return 1; return 0; })() : 0;
   return (
     <div>
       <div id="alx" ref={hostRef}>
         <canvas />
-        <div id="alx-hud"><span className="pill y">🪙 <b id="alx-coins">0</b></span><span className="pill">⏱ <b id="alx-time">{W.timed || 0}</b>s</span><span className="pill" id="alx-deaths" hidden>💀 <b>0</b></span>{mode === 'cpu' && <span className="pill" id="alx-robot">🏁 0/3</span>}{world === 'treasure' && <span className="pill" id="alx-chests">💰 0/8</span>}{((W as any).fight || (W as any).runner) && <span className="pill" id="alx-lives">❤️❤️❤️</span>}{mode === 'online' && <span className="pill">🌐 {others.length + 1}</span>}</div>
+        <div id="alx-hud"><span className="pill y">🪙 <b id="alx-coins">0</b></span><span className="pill">⏱ <b id="alx-time">{W.timed || 0}</b>s</span><span className="pill" id="alx-deaths" hidden>💀 <b>0</b></span>{mode === 'cpu' && <span className="pill" id="alx-robot">🏁 0/3</span>}{world === 'treasure' && <span className="pill" id="alx-chests">💰 0/8</span>}{((W as any).fight || (W as any).runner) && <span className="pill" id="alx-lives">❤️❤️❤️</span>}<span className="pill" id="alx-mg" hidden />{mode === 'online' && <span className="pill">🌐 {others.length + 1}</span>}</div>
         <div id="alx-msg" />
         <div id="alx-joy" hidden><div className="knob" /></div>
         <div id="alx-top">{mode === 'online' && <button className="btn-ghost btn-sm" onClick={toggleMic}>{mic === 'on' ? '🎤' : mic === 'muted' ? '🔇' : '🎙️'}</button>}{world !== 'city' && <button className="btn-ghost btn-sm" onClick={() => gameRef.current?.end()}>⏹</button>}{(world === 'city' || preview) && <button className="btn-ghost btn-sm" onClick={() => (onExit ? onExit() : router.push('/play'))}>✕</button>}</div>
-        <div id="alx-side">{(W as any).fight && <button style={{ background: '#FFD23F', fontSize: '1.6rem' }} onPointerDown={(e) => { e.preventDefault(); gameRef.current?.punch(); }}>👊</button>}<button onClick={() => setWheel(wheel === 'emote' ? null : 'emote')}>😀</button><button onClick={() => setWheel(wheel === 'chat' ? null : 'chat')}>💬</button></div>
+        <div id="alx-side">{(W as any).fight && <button style={{ background: '#FFD23F', fontSize: '1.6rem' }} onPointerDown={(e) => { e.preventDefault(); gameRef.current?.punch(); }}>👊</button>}{(W as any).action && <button style={{ background: '#2EE6D6', color: '#141A3B', fontSize: '1.5rem', width: 68, height: 68, lineHeight: 1 }} onPointerDown={(e) => { e.preventDefault(); gameRef.current?.action('down'); }} onPointerUp={(e) => { e.preventDefault(); gameRef.current?.action('up'); }} onPointerCancel={() => gameRef.current?.action('up')} onContextMenu={(e) => e.preventDefault()}>{(W as any).action}<small style={{ display: 'block', fontSize: '.55rem', fontWeight: 800 }}>{(W as any).actionLabel}</small></button>}<button onClick={() => setWheel(wheel === 'emote' ? null : 'emote')}>😀</button><button onClick={() => setWheel(wheel === 'chat' ? null : 'chat')}>💬</button></div>
         {wheel && <div id="alx-wheel">{wheel === 'emote' ? EMOTES.map((e) => <button key={e.id} onClick={() => { gameRef.current?.emote(e.id); setWheel(null); }}>{e.ic}<small>{lang === 'ar' ? e.ar : e.en}</small></button>) : CHAT.map((c) => <button key={c} onClick={() => { gameRef.current?.bubble(c); setWheel(null); }}>{c}</button>)}</div>}
         <button id="alx-jump">JUMP</button>
         {loading && <div id="alx-load">🧱 Loading your block world…</div>}
@@ -72,7 +73,7 @@ export default function GameCanvas({ world, mode, me, myPhotoUrl, room, others =
           <div className="mt-4 flex justify-center gap-2">{(W as any).campaign && result.run.finished && (W as any).campaign < 10 && <button className="btn-candy" onClick={() => router.push(`/play/c${(W as any).campaign + 1}`)}>{lang === 'ar' ? 'المستوى التالي' : 'Next level'} ▶</button>}<button className="btn-sun" onClick={() => (onExit ? onExit() : router.push(mode === 'online' && room ? `/rooms/${room}` : (W as any).campaign ? '/play#adventure' : '/play'))}>{mode === 'online' ? t('rooms') : t('home')}</button>{mode !== 'online' && !preview && <button className="btn-mint" onClick={() => { setResult(null); router.refresh(); location.reload(); }}>🔁</button>}</div>
         </div></div>}
       </div>
-      <p className="muted mt-2 text-center text-xs">📱 {lang === 'ar' ? 'يسار الشاشة: تحرّك · يمينها: الكاميرا · JUMP للقفز' : 'Left: move · Right: look · JUMP'} · ⌨️ WASD / Space · 1-4 {lang === 'ar' ? 'إيموت' : 'emotes'}</p>
+      <p className="muted mt-2 text-center text-xs">📱 {lang === 'ar' ? 'يسار الشاشة: تحرّك · يمينها: الكاميرا · JUMP للقفز' : 'Left: move · Right: look · JUMP'} · ⌨️ WASD / Space{(W as any).action ? ' · X = ' + (W as any).actionLabel : ''} · 1-4 {lang === 'ar' ? 'إيموت' : 'emotes'}</p>
     </div>
   );
 }
